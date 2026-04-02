@@ -549,7 +549,20 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
 // ==================== DATA ====================
 const LOGO_B64 = '';
 
-const INIT_RESIDENTS = [];
+const INIT_RESIDENTS = [
+  {name:'大野 ヒロコ',care:'要介護２',sched:[1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1]},
+  {name:'北村 孝子',care:'要介護４',sched:[0,1,1,1,1,1,0,0,1,1,1,1,1,0,0,1,1,1,1,0,0,0,1,1,1,1,1,0,0,1,1]},
+  {name:'熊本 絹江',care:'要介護１',sched:[0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1]},
+  {name:'栗田 紀子',care:'要介護３',sched:[1,1,1,1,0,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0]},
+  {name:'田村 敏子',care:'要介護４',sched:[0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1]},
+  {name:'辻 邦子',care:'要介護３',sched:[1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1]},
+  {name:'林 清子',care:'要介護３',sched:[0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,1]},
+  {name:'福島 チヨミ',care:'要介護１',sched:[0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0]},
+  {name:'増田 久美',care:'要介護４',sched:[0,1,1,1,1,1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1,0,1,1,1,1,1,1,0,1,1]},
+  {name:'増本 智惠子',care:'要介護１',sched:[0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1,0,1,0,1,0,0,1]},
+  {name:'山口 芙美子',care:'要介護２',sched:[1,1,0,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1,1,0,1,1]},
+  {name:'吉田 嘉子',care:'要介護５',sched:[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]}
+];
 
 const REC_ITEMS = ["体操", "ストレッチ", "リズム運動", "転倒予防運動", "計算問題", "記憶ゲーム", "間違い探し", "漢字書き取り", "しりとり", "なぞなぞ", "迷路", "塗り絵", "パズル", "クロスワード", "点つなぎ", "折り紙", "書道", "ちぎり絵", "壁面制作", "カレンダー作り", "ダーツゲーム", "ビンゴ", "風船バレー", "トランプ", "オセロ", "ジェンガ", "ペットボトル倒し", "百人一首", "カラオケ", "音楽鑑賞", "映画鑑賞", "紙芝居", "朗読", "読み聞かせ", "洗濯たたみ", "調理補助", "おやつ作り", "写真整理", "写真回想", "花見", "夏祭り", "敬老会", "クリスマス会", "誕生日会", "外食イベント", "ドライブ", "散歩", "買い物ゲーム", "昔遊び（お手玉など）"];
 
@@ -569,7 +582,7 @@ let calY, calM;
 // ==================== STORAGE ====================
 function loadDB(){
   try{
-    const s = localStorage.getItem('kaigo3');
+    const s = localStorage.getItem('minami3');
     if(s){ const d=JSON.parse(s); db=d; }
   }catch(e){}
   if(!db.residents||db.residents.length===0){
@@ -578,7 +591,7 @@ function loadDB(){
   if(!db.records) db.records={};
 }
 function saveDB(){
-  localStorage.setItem('kaigo3', JSON.stringify(db));
+  localStorage.setItem('minami3', JSON.stringify(db));
   syncTo();
 }
 function get48hRecords(name,tab){
@@ -1825,7 +1838,7 @@ function syncFrom(){
     .then(r=>r.json()).then(res=>{
       if(res.record && res.record.timestamp > syncTs){
         db = JSON.parse(res.record.data);
-        localStorage.setItem('kaigo3', JSON.stringify(db));
+        localStorage.setItem('minami3', JSON.stringify(db));
         syncTs = res.record.timestamp;
         renderMain();
         setSyncStatus('同期済','green');
