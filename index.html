@@ -158,6 +158,54 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
 /* ===== SYNC BAR ===== */
 .sync-bar{border-top:0.5px solid var(--border);padding:6px 14px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text3);background:var(--white);flex-shrink:0;}
 @media print{.sync-bar{display:none!important;}}
+
+/* ===== SMARTPHONE (430px以下) ===== */
+@media (max-width: 430px) {
+  html,body { font-size: 12px; }
+
+  /* ヘッダー */
+  .hdr { padding: 5px 8px; gap: 4px; }
+  .hdr-logo { height: 26px; }
+  .hdr-center { gap: 3px; }
+  .hdr-date { font-size: 12px; padding: 4px 6px; }
+  .hdr-btn { padding: 4px 7px; font-size: 11px; }
+  .hdr-btn.nav { font-size: 14px; padding: 4px 6px; }
+
+  /* メインテーブル：全列を画面内に収める */
+  .tbl th { font-size: 11px; padding: 6px 3px; }
+  .tbl td { font-size: 11px; padding: 7px 3px; }
+  /* 申送列のインラインstyleを上書き */
+  .tbl th:first-child { width: 28px !important; min-width: 28px !important; }
+  .tbl td:first-child { width: 28px !important; min-width: 28px !important; }
+  /* 氏名列 */
+  .name-wrap { min-width: 58px; gap: 2px; }
+  .name-txt { font-size: 12px; }
+  .name-sub { display: none; }
+  .del-btn { font-size: 10px; padding: 2px 4px; }
+  /* セル値 */
+  .cell-ok { font-size: 13px; }
+  .cell-val { font-size: 11px; line-height: 1.4; }
+  .cell-empty { font-size: 13px; }
+  .cell-red { font-size: 14px; }
+  .cell-warn { font-size: 11px; }
+
+  /* タブ */
+  .tab { font-size: 13px; padding: 8px 10px; }
+
+  /* 同期バー */
+  .sync-bar { font-size: 11px; padding: 4px 8px; }
+}
+
+@media (max-width: 430px) and (orientation: landscape) {
+  html,body { font-size: 11px; }
+  .hdr { padding: 3px 6px; }
+  .hdr-logo { height: 20px; }
+  .tbl th { font-size: 10px; padding: 4px 2px; }
+  .tbl td { font-size: 10px; padding: 5px 2px; }
+  .cell-val { font-size: 10px; }
+  .name-wrap { min-width: 52px; }
+  .name-txt { font-size: 11px; }
+}
 </style>
 </head>
 <body>
