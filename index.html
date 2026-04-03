@@ -294,32 +294,35 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
       <div class="rec-list" id="listEx"></div>
       <div class="inp-box">
         <h4>＋ 排泄入力</h4>
-        <div class="fg"><label>時刻</label><input type="time" id="exTime"></div>
         <div class="row2">
+          <div class="fg"><label>時刻</label><input type="time" id="exTime"></div>
+          <div class="fg"><label>記入者</label>
+            <select id="exWriter"><option value="">── 記入者を選択 ──</option></select>
+          </div>
+        </div>
+        <div class="row3">
           <div class="fg"><label>排尿</label>
             <select id="exUrine"><option>なし</option><option>少量</option><option>中量</option><option>大量</option></select>
+            <input type="text" id="exUrineText" placeholder="自由入力（任意）" style="margin-top:4px;width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--r2);font-size:14px;font-family:inherit;">
+          </div>
+          <div class="fg"><label>パット内排尿</label>
+            <select id="exPad">
+              <option>なし</option>
+              <option>1回分</option><option>2回分</option><option>3回分</option><option>4回分</option>
+              <option>5回分</option><option>6回分</option><option>7回分</option><option>8回分</option>
+              <option>9回分</option><option>10回分</option>
+            </select>
           </div>
           <div class="fg"><label>排便</label>
             <select id="exStool">
               <option>なし</option>
-              <option>普通便 少量</option>
-              <option>普通便 中量</option>
-              <option>普通便 多量</option>
-              <option>硬便 少量</option>
-              <option>硬便 中量</option>
-              <option>軟便 少量</option>
-              <option>軟便 中量</option>
-              <option>軟便 多量</option>
-              <option>水様便 少量</option>
-              <option>水様便 中量</option>
-              <option>水様便 多量</option>
+              <option>普通便 少量</option><option>普通便 中量</option><option>普通便 多量</option>
+              <option>硬便 少量</option><option>硬便 中量</option>
+              <option>軟便 少量</option><option>軟便 中量</option><option>軟便 多量</option>
+              <option>水様便 少量</option><option>水様便 中量</option><option>水様便 多量</option>
             </select>
+            <input type="text" id="exStoolText" placeholder="自由入力（任意）" style="margin-top:4px;width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--r2);font-size:14px;font-family:inherit;">
           </div>
-        </div>
-        <div class="fg"><label>記入者</label>
-          <select id="exWriter">
-            <option value="">── 記入者を選択 ──</option>
-          </select>
         </div>
         <button class="save-btn" onclick="saveEx()">記録する</button>
       </div>
@@ -727,9 +730,10 @@ function renderMain(){
     const sc=lv?`<span class="cell-val">${lv.spo2}%</span>`:'<span class="cell-empty">—</span>';
     // excretion
     const le=rec.excretion.length?rec.excretion[rec.excretion.length-1]:null;
-    const _leStoolText=le&&le.stool!=='なし'?'便('+le.stool+')':le&&le.urine!=='なし'?'尿('+le.urine+')':'';
     const _leWater=le&&le.stool&&le.stool.startsWith('水様便');
-    const ec=le?`<span class="${_leWater?'cell-warn':'cell-val'}">${le.time}<br>${_leStoolText}</span>`:'<span class="cell-empty">—</span>';
+    const _lePad=le?le.pad||'なし':'なし';
+    const _leStool=le?le.stool||'なし':'なし';
+    const ec=le?`<span class="${_leWater?'cell-warn':'cell-val'}" style="font-size:14px;">${le.time}<br>パット内尿（${_lePad}）<br>便（${_leStool}）</span>`:'<span class="cell-empty">—</span>';
     // last stool (across all dates)
     const _ls=getLastStool(r.name);
     let lsc;
@@ -837,12 +841,16 @@ function refreshPanel(tab){
         const stoolHtml=`<span${isW?' style="color:var(--red);font-weight:600;"':''}>${e.stool}</span>`;
         const staffName=e.staff||e.writer||'';
         const staffHtml=staffName?`<span style="font-size:13px;color:var(--text3);margin-left:8px;">📝${staffName}</span>`:'';
-        return `<div class="rec-item"><span class="rec-time">${recDayLabel(e._dk)}${e.time}</span><div class="rec-body">排尿:${e.urine} ／ 排便:${stoolHtml}${staffHtml}</div><button class="rec-edit" onclick="editExByDate('${e._dk}',${e._i})">✎</button><button class="rec-del" onclick="delExByDate('${e._dk}',${e._i})">✕</button></div>`;
+        const padHtml=e.pad&&e.pad!=='なし'?` ／ パット:${e.pad}`:'';
+        return `<div class="rec-item"><span class="rec-time">${recDayLabel(e._dk)}${e.time}</span><div class="rec-body">排尿:${e.urine}${padHtml} ／ 排便:${stoolHtml}${staffHtml}</div><button class="rec-edit" onclick="editExByDate('${e._dk}',${e._i})">✎</button><button class="rec-del" onclick="delExByDate('${e._dk}',${e._i})">✕</button></div>`;
       }).join(''):
       '<div class="no-rec">記録なし（48時間）</div>';
     document.getElementById('exTime').value=nowTime();
     document.getElementById('exUrine').value='なし';
+    document.getElementById('exUrineText').value='';
+    document.getElementById('exPad').value='なし';
     document.getElementById('exStool').value='なし';
+    document.getElementById('exStoolText').value='';
     buildStaffSelect('exWriter','');
   }
   else if(tab==='bath'){
@@ -966,11 +974,14 @@ function delVitalByDate(dk,i){ if(!confirm('削除しますか？'))return; getR
 
 function saveEx(){
   let time=document.getElementById('exTime').value; if(!time) time=nowTime();
-  const urine=document.getElementById('exUrine').value;
-  const stool=document.getElementById('exStool').value;
+  const urineText=document.getElementById('exUrineText').value.trim();
+  const urine=urineText||document.getElementById('exUrine').value;
+  const pad=document.getElementById('exPad').value;
+  const stoolText=document.getElementById('exStoolText').value.trim();
+  const stool=stoolText||document.getElementById('exStool').value;
   const staff=document.getElementById('exWriter').value;
   if(!staff){ alert('記入者を選択してください'); return; }
-  getRec(curRes).excretion.push({time,urine,stool,staff});
+  getRec(curRes).excretion.push({time,urine,pad,stool,staff});
   saveDB(); goBack();
 }
 function delEx(i){ if(!confirm('削除しますか？'))return; getRec(curRes).excretion.splice(i,1); saveDB(); refreshPanel('excretion'); }
@@ -1071,18 +1082,19 @@ function _editExCore(rec,i){
   const newTime=prompt('時刻を入力',e.time);
   if(newTime===null) return;
   const urineOpts=['なし','少量','中量','大量'];
+  const padOpts=['なし','1回分','2回分','3回分','4回分','5回分','6回分','7回分','8回分','9回分','10回分'];
   const stoolOpts=['なし','普通便 少量','普通便 中量','普通便 多量','硬便 少量','硬便 中量','軟便 少量','軟便 中量','軟便 多量','水様便 少量','水様便 中量','水様便 多量'];
   const staffOpts=loadStaffList();
-  const urineStr=urineOpts.join('/');
-  const stoolStr=stoolOpts.join('/');
-  const newUrine=prompt('排尿 ('+urineStr+')',e.urine);
+  const newUrine=prompt('排尿 ('+urineOpts.join('/')+')',e.urine);
   if(newUrine===null) return;
-  const newStool=prompt('排便 ('+stoolStr+')',e.stool);
+  const newPad=prompt('パット内排尿 ('+padOpts.join('/')+')',e.pad||'なし');
+  if(newPad===null) return;
+  const newStool=prompt('排便 ('+stoolOpts.join('/')+')',e.stool);
   if(newStool===null) return;
   const curStaff=e.staff||e.writer||'';
   const newStaff=prompt('記入者 ('+staffOpts.join('/')+' または空白)',curStaff);
   if(newStaff===null) return;
-  rec.excretion[i]={time:newTime||e.time,urine:urineOpts.includes(newUrine)?newUrine:e.urine,stool:stoolOpts.includes(newStool)?newStool:e.stool,staff:staffOpts.includes(newStaff)?newStaff:curStaff};
+  rec.excretion[i]={time:newTime||e.time,urine:newUrine||e.urine,pad:padOpts.includes(newPad)?newPad:(e.pad||'なし'),stool:newStool||e.stool,staff:staffOpts.includes(newStaff)?newStaff:curStaff};
   saveDB(); refreshPanel('excretion');
 }
 
@@ -1554,7 +1566,7 @@ function doCareSummary(){
   }
   // 排泄
   (rec.excretion||[]).forEach(e=>{
-    rows.push({t:e.time,cat:'排泄',body:'排尿：'+e.urine+'　排便：'+e.stool,staff:e.staff||e.writer||''});
+    rows.push({t:e.time,cat:'排泄',body:'排尿：'+e.urine+(e.pad&&e.pad!=='なし'?'　パット：'+e.pad:'')+'　排便：'+e.stool,staff:e.staff||e.writer||''});
   });
   // ケア記録
   (rec.care||[]).forEach(c=>{
@@ -1629,7 +1641,7 @@ function buildPrintPages(sel, date){
     // バイタル
     rec.vital.forEach(v=>rows.push({t:v.time,cat:'バイタル',body:'体温：'+v.temp+'℃、血圧：'+v.sbp+'/'+v.dbp+'、脈拍：'+v.pulse+'/分'+(v.spo2!=='—'?'、SpO2：'+v.spo2+'%':'')}));
     // 排泄
-    rec.excretion.forEach(e=>rows.push({t:e.time,cat:'排泄',body:'排尿:'+e.urine+'、排便:'+e.stool}));
+    rec.excretion.forEach(e=>rows.push({t:e.time,cat:'排泄',body:'排尿:'+e.urine+(e.pad&&e.pad!=='なし'?'、パット:'+e.pad:'')+'、排便:'+e.stool}));
     // 入浴
     rec.bath.forEach(b=>rows.push({t:b.time,cat:'入浴',body:b.type}));
     // 食事：メニュー入力がある時のみ表示
