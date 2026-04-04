@@ -346,6 +346,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
     <!-- MEAL -->
     <div class="panel" id="pMeal">
       <div class="rec-list" id="listMeal"></div>
+      <div id="mealEditInd" style="display:none;background:#fff3cd;border:1px solid #f0ad4e;border-radius:8px;padding:6px 12px;font-size:13px;margin-bottom:8px;display:none;justify-content:space-between;align-items:center;"></div>
       <div class="inp-box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <h4 style="margin:0">食事入力</h4>
@@ -389,6 +390,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
     <!-- REC -->
     <div class="panel" id="pRec">
       <div class="rec-list" id="listRec"></div>
+      <div id="recEditInd" style="display:none;background:#fff3cd;border:1px solid #f0ad4e;border-radius:8px;padding:6px 12px;font-size:13px;margin-bottom:8px;display:none;justify-content:space-between;align-items:center;"></div>
       <div class="inp-box">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <h4 style="margin:0">レク入力</h4>
@@ -647,6 +649,7 @@ let syncTs = 0;
 let curDate = new Date(); curDate.setHours(0,0,0,0);
 let curRes = null;
 let curTab = 'vital';
+let _mealEditDk=null, _recEditDk=null;
 let db = {residents:[], records:{}};
 let calY, calM;
 
@@ -839,6 +842,9 @@ function openDetail(name, tab){
 
 }
 function goBack(){
+  _mealEditDk=null; _recEditDk=null;
+  const mi=document.getElementById('mealEditInd'); if(mi) mi.style.display='none';
+  const ri=document.getElementById('recEditInd'); if(ri) ri.style.display='none';
   renderMain();
   showScreen('mainScreen');
 }
@@ -905,7 +911,7 @@ function refreshPanel(tab){
       const b=`🌅${m.bTime||'07:30'} 主${m.bMain||100}% 副${m.bSide||100}%${m.bWater?' 水'+m.bWater:''}`;
       const l=`☀️${m.time||'11:50'} 主${m.main||100}% 副${m.side||100}%${m.water?' 水'+m.water:''}${m.menu?' '+m.menu:''}`;
       const dd2=`🌙${m.dTime||'17:30'} 主${m.dMain||100}% 副${m.dSide||100}%${m.dWater?' 水'+m.dWater:''}`;
-      return `<div class="rec-item"><span class="rec-time">${lbl}</span><div class="rec-body" style="font-size:14px;line-height:1.8;">${b}<br>${l}<br>${dd2}</div></div>`;
+      return `<div class="rec-item"><span class="rec-time">${lbl}</span><div class="rec-body" style="font-size:14px;line-height:1.8;">${b}<br>${l}<br>${dd2}</div><button class="rec-edit" onclick="editMealDay('${m._dk}')">✎</button><button class="rec-del" onclick="delMealDay('${m._dk}')">✕</button></div>`;
     }).join(''):'<div class="no-rec">記録なし（3日間）</div>';
     document.getElementById('bTime').value=rec.meal.bTime||'07:30';
     buildSel('bMain',rec.meal.bMain!=null?rec.meal.bMain:100);
@@ -928,7 +934,7 @@ function refreshPanel(tab){
     document.getElementById('listRec').innerHTML=_rHist.length?_rHist.map(r=>{
       const lbl=r._d===0?'':r._d===1?'<span style="font-size:12px;color:var(--text3);">昨日 </span>':'<span style="font-size:12px;color:var(--text3);">一昨日 </span>';
       const tStr=r.time?r.time+' ':'';
-      return `<div class="rec-item"><span class="rec-time">${lbl}${tStr}</span><div class="rec-body">${r.content}${r.part?' ／ '+r.part:''}</div></div>`;
+      return `<div class="rec-item"><span class="rec-time">${lbl}${tStr}</span><div class="rec-body">${r.content}${r.part?' ／ '+r.part:''}</div><button class="rec-edit" onclick="editRecDay('${r._dk}')">✎</button><button class="rec-del" onclick="delRecDay('${r._dk}')">✕</button></div>`;
     }).join(''):'<div class="no-rec">記録なし（3日間）</div>';
     // チップを描画
     const chips = document.getElementById('recChips');
@@ -1059,7 +1065,8 @@ function saveBath(){
 function delBath(i){ if(!confirm('削除しますか？'))return; getRec(curRes).bath.splice(i,1); saveDB(); refreshPanel('bath'); }
 
 function saveMeal(){
-  const r=getRec(curRes);
+  const targetDk=_mealEditDk||dk();
+  const r=getRec(curRes,targetDk);
   r.meal.bTime=document.getElementById('bTime').value||'07:30';
   r.meal.bMain=document.getElementById('bMain').value;
   r.meal.bSide=document.getElementById('bSide').value;
@@ -1076,6 +1083,7 @@ function saveMeal(){
   saveDB(); goBack();
 }
 function applyAllMeal(){
+  const targetDk=_mealEditDk||dk();
   const bTime=document.getElementById('bTime').value||'07:30';
   const bMain=document.getElementById('bMain').value;
   const bSide=document.getElementById('bSide').value;
@@ -1089,10 +1097,76 @@ function applyAllMeal(){
   const dMain=document.getElementById('dMain').value;
   const dSide=document.getElementById('dSide').value;
   const dWater=document.getElementById('dWater').value;
-  todayRes().forEach(r=>{ const rec=getRec(r.name); Object.assign(rec.meal,{bTime,bMain,bSide,bWater,time,menu,main,side,water,dTime,dMain,dSide,dWater}); });
+  db.residents.forEach(r=>{ const rec=getRec(r.name,targetDk); Object.assign(rec.meal,{bTime,bMain,bSide,bWater,time,menu,main,side,water,dTime,dMain,dSide,dWater}); });
   saveDB(); alert('全員に反映しました');
 }
 
+function _showEditInd(elId, targetDk, cancelFn){
+  const ind=document.getElementById(elId);
+  if(!ind) return;
+  const diff=Math.round((new Date(dk()+'T00:00:00')-new Date(targetDk+'T00:00:00'))/86400000);
+  const lbl=diff===0?'今日':diff===1?'昨日':'一昨日';
+  ind.innerHTML=`<span>${lbl}の記録を編集中</span><button class="ov-btn" style="font-size:12px;padding:4px 10px;" onclick="${cancelFn}()">取消</button>`;
+  ind.style.display='flex';
+}
+function editMealDay(targetDk){
+  _mealEditDk=targetDk;
+  const rec=getRec(curRes,targetDk);
+  document.getElementById('bTime').value=rec.meal.bTime||'07:30';
+  buildSel('bMain',rec.meal.bMain!=null?rec.meal.bMain:100);
+  buildSel('bSide',rec.meal.bSide!=null?rec.meal.bSide:100);
+  document.getElementById('bWater').value=rec.meal.bWater||'';
+  document.getElementById('mTime').value=rec.meal.time||'11:50';
+  document.getElementById('mMenu').value=rec.meal.menu||'';
+  document.getElementById('mWater').value=rec.meal.water||'';
+  buildSel('mMain',rec.meal.main!=null?rec.meal.main:100);
+  buildSel('mSide',rec.meal.side!=null?rec.meal.side:100);
+  document.getElementById('dTime').value=rec.meal.dTime||'17:30';
+  buildSel('dMain',rec.meal.dMain!=null?rec.meal.dMain:100);
+  buildSel('dSide',rec.meal.dSide!=null?rec.meal.dSide:100);
+  document.getElementById('dWater').value=rec.meal.dWater||'';
+  _showEditInd('mealEditInd',targetDk,'cancelMealEdit');
+}
+function cancelMealEdit(){
+  _mealEditDk=null;
+  document.getElementById('mealEditInd').style.display='none';
+  refreshPanel('meal');
+}
+function delMealDay(targetDk){
+  if(!confirm('この日の食事記録を削除しますか？')) return;
+  const clearMeal={bTime:'07:30',bMain:null,bSide:null,bWater:'',time:'11:50',menu:'',main:null,side:null,water:'',dTime:'17:30',dMain:null,dSide:null,dWater:''};
+  if(confirm('全員のこの日の食事記録を削除しますか？\nOK→全員　キャンセル→この方のみ')){
+    db.residents.forEach(r=>{ const rec=getRec(r.name,targetDk); Object.assign(rec.meal,clearMeal); });
+  } else {
+    Object.assign(getRec(curRes,targetDk).meal,clearMeal);
+  }
+  saveDB(); refreshPanel('meal');
+}
+function editRecDay(targetDk){
+  _recEditDk=targetDk;
+  const rec=getRec(curRes,targetDk);
+  const cur=rec.rec.content||'';
+  document.getElementById('recContent').value=cur;
+  document.getElementById('rTime').value=rec.rec.time||'';
+  document.querySelectorAll('#recChips .chip').forEach(b=>b.classList.toggle('on',cur.includes(b.textContent)));
+  document.querySelectorAll('.chk-btn').forEach(b=>b.classList.remove('on'));
+  if(rec.rec.part){ const pb=document.getElementById('part'+rec.rec.part); if(pb) pb.classList.add('on'); }
+  _showEditInd('recEditInd',targetDk,'cancelRecEdit');
+}
+function cancelRecEdit(){
+  _recEditDk=null;
+  document.getElementById('recEditInd').style.display='none';
+  refreshPanel('rec');
+}
+function delRecDay(targetDk){
+  if(!confirm('この日のレク記録を削除しますか？')) return;
+  if(confirm('全員のこの日のレク記録を削除しますか？\nOK→全員　キャンセル→この方のみ')){
+    db.residents.forEach(r=>{ const rec=getRec(r.name,targetDk); rec.rec={content:'',part:'',time:''}; });
+  } else {
+    getRec(curRes,targetDk).rec={content:'',part:'',time:''};
+  }
+  saveDB(); refreshPanel('rec');
+}
 function toggleChip(el, item){
   el.classList.toggle('on');
   // チップの状態からテキストを生成
@@ -1108,7 +1182,8 @@ function pickPart(p){
   document.getElementById('part'+p).classList.add('on');
 }
 function saveRec(){
-  const r=getRec(curRes);
+  const targetDk=_recEditDk||dk();
+  const r=getRec(curRes,targetDk);
   r.rec.content=document.getElementById('recContent').value;
   const sel=document.querySelector('.chk-btn.on');
   r.rec.part=sel?sel.textContent:'';
@@ -1116,11 +1191,12 @@ function saveRec(){
   saveDB(); goBack();
 }
 function applyAllRec(){
+  const targetDk=_recEditDk||dk();
   const content=document.getElementById('recContent').value;
   const sel=document.querySelector('.chk-btn.on');
   const part=sel?sel.textContent:'';
   const time=document.getElementById('rTime').value||nowTime();
-  todayRes().forEach(r=>{ const rec=getRec(r.name); rec.rec.content=content; rec.rec.part=part; rec.rec.time=time; });
+  db.residents.forEach(r=>{ const rec=getRec(r.name,targetDk); rec.rec.content=content; rec.rec.part=part; rec.rec.time=time; });
   saveDB(); alert('全員に反映しました');
 }
 
@@ -1878,18 +1954,37 @@ function handleXlsx(file){
       const ws = wb.Sheets[wb.SheetNames[0]];
       const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
       const skip = ['氏名','集計項目','利用者合計','介護保険内利用者','介護保険外利用者','お泊り利用者','入浴利用者','送迎減算利用者','延長加算利用者','個別機能訓練加算利用者'];
-      const newRes = [];
+      // 名前でグループ化して利用行・お泊行を収集
+      const byName={};
       for(let i=17;i<data.length;i++){
         const row=data[i];
-        if(!row[0]||skip.includes(row[0])) continue;
-        if(row[2]==='利用'||row[2]=='利用'){
-          const sched=[];
-          for(let c=3;c<=33;c++){
-            const v=row[c];
-            sched.push(v&&['〇','○','◯'].includes(String(v).trim())?1:0);
+        if(!row[0]||skip.includes(String(row[0]).trim())) continue;
+        const name=String(row[0]).trim();
+        const cat=String(row[2]||'').trim();
+        if(!byName[name]) byName[name]={care:String(row[1]||'').trim(),利用:null,お泊:null};
+        if(cat==='利用') byName[name].利用=row;
+        if(cat==='お泊'||cat==='お泊り'||cat==='泊') byName[name].お泊=row;
+      }
+      const newRes = [];
+      for(const [name,v] of Object.entries(byName)){
+        const uRow=v.利用; const oRow=v.お泊;
+        // D列（col 3 = 1日）のお泊に●があれば毎日利用（常勤）扱い
+        const isDaily=oRow&&String(oRow[3]||'').trim()==='●';
+        if(!isDaily&&!uRow) continue;
+        const sched=[];
+        for(let c=3;c<=33;c++){
+          const dayIdx=c-3;
+          if(isDaily){
+            sched.push(1);
+          } else {
+            const uv=uRow[c];
+            let val=uv&&['〇','○','◯'].includes(String(uv).trim())?1:0;
+            // 翌日ルール：前日にお泊●があれば利用扱い
+            if(oRow&&dayIdx>0&&String(oRow[c-1]||'').trim()==='●') val=1;
+            sched.push(val);
           }
-          newRes.push({name:row[0],care:row[1]||'',sched});
         }
+        newRes.push({name,care:v.care,sched});
       }
       if(newRes.length>0){
         db.residents=newRes;
