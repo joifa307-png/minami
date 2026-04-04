@@ -75,7 +75,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
 /* ===== RECORD LIST ===== */
 .rec-list{margin-bottom:16px;}
 .rec-item{display:flex;align-items:flex-start;gap:10px;padding:12px;background:var(--gray1);border-radius:var(--r2);margin-bottom:8px;border:1px solid var(--border);}
-.rec-time{font-size:17px;color:var(--text3);flex-shrink:0;min-width:50px;}
+.rec-time{font-size:17px;color:var(--blue);flex-shrink:0;min-width:50px;font-weight:500;}
 .rec-body{flex:1;font-size:18px;line-height:1.6;}
 .rec-del{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:0 4px;}
 .no-rec{padding:20px;text-align:center;color:var(--text3);font-size:15px;}
@@ -351,12 +351,36 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
           <h4 style="margin:0">食事入力</h4>
           <button class="all-btn" onclick="applyAllMeal()">全員に反映</button>
         </div>
-        <div class="fg" style="max-width:160px"><label>時刻</label><input type="time" id="mTime" value="11:50"></div>
-        <div class="fg"><label>メニュー</label><input type="text" id="mMenu" placeholder="例：鮭の塩焼き定食"></div>
-        <div class="row3">
-          <div class="fg"><label>主食 %</label><select id="mMain"></select></div>
-          <div class="fg"><label>副食 %</label><select id="mSide"></select></div>
-          <div class="fg"><label>水分 ml</label><input type="tel" id="mWater" placeholder="200"></div>
+        <!-- 朝食 -->
+        <div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border);">
+          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:8px;">🌅 朝食</div>
+          <div class="row3">
+            <div class="fg"><label>時刻</label><input type="time" id="bTime" value="07:30"></div>
+            <div class="fg"><label>主食 %</label><select id="bMain"></select></div>
+            <div class="fg"><label>副食 %</label><select id="bSide"></select></div>
+          </div>
+          <div class="fg" style="max-width:160px"><label>水分 ml</label><input type="tel" id="bWater" placeholder="200"></div>
+        </div>
+        <!-- 昼食 -->
+        <div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border);">
+          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:8px;">☀️ 昼食</div>
+          <div class="fg"><label>メニュー</label><input type="text" id="mMenu" placeholder="例：鮭の塩焼き定食"></div>
+          <div class="row3">
+            <div class="fg"><label>時刻</label><input type="time" id="mTime" value="11:50"></div>
+            <div class="fg"><label>主食 %</label><select id="mMain"></select></div>
+            <div class="fg"><label>副食 %</label><select id="mSide"></select></div>
+          </div>
+          <div class="fg" style="max-width:160px"><label>水分 ml</label><input type="tel" id="mWater" placeholder="200"></div>
+        </div>
+        <!-- 夕食 -->
+        <div style="margin-bottom:8px;">
+          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:8px;">🌙 夕食</div>
+          <div class="row3">
+            <div class="fg"><label>時刻</label><input type="time" id="dTime" value="17:30"></div>
+            <div class="fg"><label>主食 %</label><select id="dMain"></select></div>
+            <div class="fg"><label>副食 %</label><select id="dSide"></select></div>
+          </div>
+          <div class="fg" style="max-width:160px"><label>水分 ml</label><input type="tel" id="dWater" placeholder="200"></div>
         </div>
         <button class="save-btn" onclick="saveMeal()">保存</button>
       </div>
@@ -691,7 +715,7 @@ function getRec(name, dateKey){
   if(!db.records[k]) db.records[k]={};
   if(!db.records[k][name]) db.records[k][name]={
     vital:[],excretion:[],bath:[],
-    meal:{menu:'',main:100,side:100,water:''},
+    meal:{bTime:'07:30',bMain:100,bSide:100,bWater:'',time:'11:50',menu:'',main:100,side:100,water:'',dTime:'17:30',dMain:100,dSide:100,dWater:''},
     rec:{content:'',part:''},
     notes:[],
     care:[],
@@ -866,16 +890,27 @@ function refreshPanel(tab){
   else if(tab==='meal'){
     // 3日分履歴
     const _mHist=[];
-    for(let d=0;d<=2;d++){ const dt=new Date(curDate);dt.setDate(dt.getDate()-d);const k=dk(dt);const dd=db.records[k]&&db.records[k][curRes];if(dd&&dd.meal&&dd.meal.menu) _mHist.push({...dd.meal,_dk:k,_d:d}); }
+    for(let d=0;d<=2;d++){ const dt=new Date(curDate);dt.setDate(dt.getDate()-d);const k=dk(dt);const dd=db.records[k]&&db.records[k][curRes];if(dd&&dd.meal&&(dd.meal.menu||dd.meal.bMain||dd.meal.dMain)) _mHist.push({...dd.meal,_dk:k,_d:d}); }
     document.getElementById('listMeal').innerHTML=_mHist.length?_mHist.map(m=>{
-      const lbl=m._d===0?'':m._d===1?'<span style="font-size:12px;color:var(--text3);">昨日 </span>':'<span style="font-size:12px;color:var(--text3);">一昨日 </span>';
-      return `<div class="rec-item"><span class="rec-time">${lbl}${m.time||''}</span><div class="rec-body">${m.menu||''}　主食${m.main}% 副食${m.side}%${m.water?' 水分'+m.water+'ml':''}</div></div>`;
+      const lbl=m._d===0?'':m._d===1?'<span style="font-size:12px;">昨日 </span>':'<span style="font-size:12px;">一昨日 </span>';
+      const b=`🌅${m.bTime||'07:30'} 主${m.bMain||100}% 副${m.bSide||100}%${m.bWater?' 水'+m.bWater:''}`;
+      const l=`☀️${m.time||'11:50'} 主${m.main||100}% 副${m.side||100}%${m.water?' 水'+m.water:''}${m.menu?' '+m.menu:''}`;
+      const dd2=`🌙${m.dTime||'17:30'} 主${m.dMain||100}% 副${m.dSide||100}%${m.dWater?' 水'+m.dWater:''}`;
+      return `<div class="rec-item"><span class="rec-time">${lbl}</span><div class="rec-body" style="font-size:14px;line-height:1.8;">${b}<br>${l}<br>${dd2}</div></div>`;
     }).join(''):'<div class="no-rec">記録なし（3日間）</div>';
+    document.getElementById('bTime').value=rec.meal.bTime||'07:30';
+    buildSel('bMain',rec.meal.bMain!=null?rec.meal.bMain:100);
+    buildSel('bSide',rec.meal.bSide!=null?rec.meal.bSide:100);
+    document.getElementById('bWater').value=rec.meal.bWater||'';
     document.getElementById('mTime').value=rec.meal.time||'11:50';
     document.getElementById('mMenu').value=rec.meal.menu||'';
     document.getElementById('mWater').value=rec.meal.water||'';
-    buildSel('mMain',rec.meal.main);
-    buildSel('mSide',rec.meal.side);
+    buildSel('mMain',rec.meal.main!=null?rec.meal.main:100);
+    buildSel('mSide',rec.meal.side!=null?rec.meal.side:100);
+    document.getElementById('dTime').value=rec.meal.dTime||'17:30';
+    buildSel('dMain',rec.meal.dMain!=null?rec.meal.dMain:100);
+    buildSel('dSide',rec.meal.dSide!=null?rec.meal.dSide:100);
+    document.getElementById('dWater').value=rec.meal.dWater||'';
   }
   else if(tab==='rec'){
     // 3日分履歴
@@ -1016,20 +1051,36 @@ function delBath(i){ if(!confirm('削除しますか？'))return; getRec(curRes)
 
 function saveMeal(){
   const r=getRec(curRes);
+  r.meal.bTime=document.getElementById('bTime').value||'07:30';
+  r.meal.bMain=document.getElementById('bMain').value;
+  r.meal.bSide=document.getElementById('bSide').value;
+  r.meal.bWater=document.getElementById('bWater').value;
   r.meal.time=document.getElementById('mTime').value||'11:50';
   r.meal.menu=document.getElementById('mMenu').value;
   r.meal.main=document.getElementById('mMain').value;
   r.meal.side=document.getElementById('mSide').value;
   r.meal.water=document.getElementById('mWater').value;
+  r.meal.dTime=document.getElementById('dTime').value||'17:30';
+  r.meal.dMain=document.getElementById('dMain').value;
+  r.meal.dSide=document.getElementById('dSide').value;
+  r.meal.dWater=document.getElementById('dWater').value;
   saveDB(); goBack();
 }
 function applyAllMeal(){
+  const bTime=document.getElementById('bTime').value||'07:30';
+  const bMain=document.getElementById('bMain').value;
+  const bSide=document.getElementById('bSide').value;
+  const bWater=document.getElementById('bWater').value;
   const time=document.getElementById('mTime').value||'11:50';
   const menu=document.getElementById('mMenu').value;
   const main=document.getElementById('mMain').value;
   const side=document.getElementById('mSide').value;
   const water=document.getElementById('mWater').value;
-  todayRes().forEach(r=>{ const rec=getRec(r.name); rec.meal.time=time; rec.meal.menu=menu; rec.meal.main=main; rec.meal.side=side; rec.meal.water=water; });
+  const dTime=document.getElementById('dTime').value||'17:30';
+  const dMain=document.getElementById('dMain').value;
+  const dSide=document.getElementById('dSide').value;
+  const dWater=document.getElementById('dWater').value;
+  todayRes().forEach(r=>{ const rec=getRec(r.name); Object.assign(rec.meal,{bTime,bMain,bSide,bWater,time,menu,main,side,water,dTime,dMain,dSide,dWater}); });
   saveDB(); alert('全員に反映しました');
 }
 
@@ -1581,9 +1632,13 @@ function doCareSummary(){
     rows.push({t:v.time,cat:'バイタル',body:'体温：'+v.temp+'℃　血圧：'+v.sbp+'/'+v.dbp+'　脈拍：'+v.pulse+'　SpO2：'+v.spo2+'%',staff:''});
   });
   // 食事
-  if(rec.meal&&rec.meal.menu){
+  if(rec.meal&&rec.meal.bMain!=null){
+    rows.push({t:rec.meal.bTime||'07:30',cat:'朝食',body:'主食：'+rec.meal.bMain+'%　副食：'+rec.meal.bSide+'%'+(rec.meal.bWater?'　水分：'+rec.meal.bWater+'ml':''),staff:''});
+    rows.push({t:rec.meal.time||'11:50',cat:'昼食',body:'主食：'+rec.meal.main+'%　副食：'+rec.meal.side+'%'+(rec.meal.water?'　水分：'+rec.meal.water+'ml':'')+(rec.meal.menu?'　メニュー：'+rec.meal.menu:''),staff:''});
+    rows.push({t:rec.meal.dTime||'17:30',cat:'夕食',body:'主食：'+rec.meal.dMain+'%　副食：'+rec.meal.dSide+'%'+(rec.meal.dWater?'　水分：'+rec.meal.dWater+'ml':''),staff:''});
+  } else if(rec.meal&&rec.meal.menu){
     const mt=rec.meal.time||'';
-    rows.push({t:mt,cat:'食事',body:'主食：'+rec.meal.main+'%　副食：'+rec.meal.side+'%'+(rec.meal.water?'　水分：'+rec.meal.water+'ml':'')+(rec.meal.menu?'　メニュー：'+rec.meal.menu:''),staff:''});
+    rows.push({t:mt,cat:'昼食',body:'主食：'+rec.meal.main+'%　副食：'+rec.meal.side+'%'+(rec.meal.water?'　水分：'+rec.meal.water+'ml':'')+(rec.meal.menu?'　メニュー：'+rec.meal.menu:''),staff:''});
   }
   // 排泄
   (rec.excretion||[]).forEach(e=>{
@@ -1665,9 +1720,13 @@ function buildPrintPages(sel, date){
     rec.excretion.forEach(e=>rows.push({t:e.time,cat:'排泄',body:'排尿:'+e.urine+(e.pad&&e.pad!=='なし'?'、パット:'+e.pad:'')+'、排便:'+e.stool}));
     // 入浴
     rec.bath.forEach(b=>rows.push({t:b.time,cat:'入浴',body:b.type}));
-    // 食事：メニュー入力がある時のみ表示
-    if(rec.meal.menu){
-      rows.push({t:'11:45',cat:'食事',body:'主食：'+rec.meal.main+'%、副食：'+rec.meal.side+'%'+(rec.meal.water?'、水分：'+rec.meal.water+'ml':'')});
+    // 食事
+    if(rec.meal.bMain!=null){
+      rows.push({t:rec.meal.bTime||'07:30',cat:'朝食',body:'主食：'+rec.meal.bMain+'%、副食：'+rec.meal.bSide+'%'+(rec.meal.bWater?'、水分：'+rec.meal.bWater+'ml':'')});
+      rows.push({t:rec.meal.time||'11:50',cat:'昼食',body:'主食：'+rec.meal.main+'%、副食：'+rec.meal.side+'%'+(rec.meal.water?'、水分：'+rec.meal.water+'ml':'')+(rec.meal.menu?'　メニュー：'+rec.meal.menu:'')});
+      rows.push({t:rec.meal.dTime||'17:30',cat:'夕食',body:'主食：'+rec.meal.dMain+'%、副食：'+rec.meal.dSide+'%'+(rec.meal.dWater?'、水分：'+rec.meal.dWater+'ml':'')});
+    } else if(rec.meal.menu){
+      rows.push({t:'11:50',cat:'昼食',body:'主食：'+rec.meal.main+'%、副食：'+rec.meal.side+'%'+(rec.meal.water?'、水分：'+rec.meal.water+'ml':'')});
       rows.push({t:'',cat:'メニュー',body:rec.meal.menu});
     }
     // レク
