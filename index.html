@@ -1970,10 +1970,9 @@ function handleXlsx(file){
       let dailyCount=0;
       for(const [name,v] of Object.entries(byName)){
         const uRow=v.利用; const oRow=v.お泊;
-        // D列（col 3 = 1日）のお泊行に何らかの値があれば毎日利用（常勤）扱い
-        // 〇系（通常利用マーク）以外の値があれば●とみなす
+        // D列（col 3 = 1日）のお泊行に何か入力があれば毎日利用（常勤）扱い
         const d1Val=oRow?String(oRow[3]||'').trim():'';
-        const isDaily=oRow&&d1Val.length>0&&!['〇','○','◯',''].includes(d1Val);
+        const isDaily=oRow&&d1Val.length>0;
         if(!isDaily&&!uRow) continue;
         const sched=[];
         for(let c=3;c<=33;c++){
@@ -1983,10 +1982,9 @@ function handleXlsx(file){
           } else {
             const uv=uRow[c];
             let val=uv&&['〇','○','◯'].includes(String(uv).trim())?1:0;
-            // 翌日ルール：前日のお泊行に〇系以外の値があれば利用扱い
+            // 翌日ルール：前日のお泊行に何か入力があれば利用扱い
             if(oRow&&dayIdx>0){
-              const prevVal=String(oRow[c-1]||'').trim();
-              if(prevVal.length>0&&!['〇','○','◯',''].includes(prevVal)) val=1;
+              if(String(oRow[c-1]||'').trim().length>0) val=1;
             }
             sched.push(val);
           }
