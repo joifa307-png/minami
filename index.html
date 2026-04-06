@@ -1955,17 +1955,27 @@ function handleXlsx(file){
       const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
       const skip = ['氏名','集計項目','利用者合計','介護保険内利用者','介護保険外利用者','お泊り利用者','入浴利用者','送迎減算利用者','延長加算利用者','個別機能訓練加算利用者'];
       // 名前でグループ化して利用行・お泊行を収集
+      // ※Excelの結合セルは2行目以降がnullになるため、直前の名前を引き継ぐ
       var byName = {};
       var cats = [];
+      var curName = null;
+      var curCare = null;
       for(var i=17;i<data.length;i++){
         var row=data[i];
-        if(!row[0]||skip.indexOf(String(row[0]).trim())>=0) continue;
-        var name=String(row[0]).trim();
+        // 名前セルがあれば更新（結合セルの先頭行）
+        if(row[0]&&skip.indexOf(String(row[0]).trim())<0){
+          curName=String(row[0]).trim();
+          curCare=String(row[1]||'').trim();
+        }
+        if(!curName) continue;
+        // 集計行などはスキップ
+        if(row[0]&&skip.indexOf(String(row[0]).trim())>=0){curName=null;continue;}
         var cat=String(row[2]||'').trim();
+        if(!cat) continue;
         if(cats.indexOf(cat)<0) cats.push(cat);
-        if(!byName[name]) byName[name]={care:String(row[1]||'').trim(),riyou:null,otomari:null};
-        if(cat==='利用') byName[name].riyou=row;
-        if(cat.indexOf('泊')>=0) byName[name].otomari=row;
+        if(!byName[curName]) byName[curName]={care:curCare,riyou:null,otomari:null};
+        if(cat==='利用') byName[curName].riyou=row;
+        if(cat.indexOf('泊')>=0) byName[curName].otomari=row;
       }
       const newRes = [];
       var dailyCount = 0;
