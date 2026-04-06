@@ -1963,13 +1963,17 @@ function handleXlsx(file){
         const cat=String(row[2]||'').trim();
         if(!byName[name]) byName[name]={care:String(row[1]||'').trim(),利用:null,お泊:null};
         if(cat==='利用') byName[name].利用=row;
-        if(cat==='お泊'||cat==='お泊り'||cat==='泊') byName[name].お泊=row;
+        // 「泊」を含むカテゴリを柔軟にマッチ
+        if(cat.includes('泊')) byName[name].お泊=row;
       }
       const newRes = [];
+      let dailyCount=0;
       for(const [name,v] of Object.entries(byName)){
         const uRow=v.利用; const oRow=v.お泊;
-        // D列（col 3 = 1日）のお泊に●があれば毎日利用（常勤）扱い
-        const isDaily=oRow&&String(oRow[3]||'').trim()==='●';
+        // D列（col 3 = 1日）のお泊行に何らかの値があれば毎日利用（常勤）扱い
+        // 〇系（通常利用マーク）以外の値があれば●とみなす
+        const d1Val=oRow?String(oRow[3]||'').trim():'';
+        const isDaily=oRow&&d1Val.length>0&&!['〇','○','◯',''].includes(d1Val);
         if(!isDaily&&!uRow) continue;
         const sched=[];
         for(let c=3;c<=33;c++){
@@ -1979,17 +1983,22 @@ function handleXlsx(file){
           } else {
             const uv=uRow[c];
             let val=uv&&['〇','○','◯'].includes(String(uv).trim())?1:0;
-            // 翌日ルール：前日にお泊●があれば利用扱い
-            if(oRow&&dayIdx>0&&String(oRow[c-1]||'').trim()==='●') val=1;
+            // 翌日ルール：前日のお泊行に〇系以外の値があれば利用扱い
+            if(oRow&&dayIdx>0){
+              const prevVal=String(oRow[c-1]||'').trim();
+              if(prevVal.length>0&&!['〇','○','◯',''].includes(prevVal)) val=1;
+            }
             sched.push(val);
           }
         }
+        if(isDaily) dailyCount++;
         newRes.push({name,care:v.care,sched});
       }
       if(newRes.length>0){
         db.residents=newRes;
         saveDB();
-        msg.innerHTML='<span style="color:var(--green)">✔ '+newRes.length+'名の予定を読み込みました</span>';
+        const dailyMsg=dailyCount>0?`（常勤${dailyCount}名含む）`:'';
+        msg.innerHTML='<span style="color:var(--green)">✔ '+newRes.length+'名の予定を読み込みました'+dailyMsg+'</span>';
         renderMain();
         setTimeout(()=>closeOv('ovUpload'),1500);
       } else {
