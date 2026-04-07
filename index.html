@@ -639,7 +639,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
       <div id="sumResName" style="font-size:19px;font-weight:700;"></div>
       <button onclick="closeOv('ovSummary')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text3);line-height:1;">✕</button>
     </div>
-    <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
+    <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;background:#f5f5f5;">
       <table id="sumTable" style="border-collapse:collapse;width:100%;min-width:580px;"></table>
     </div>
   </div>
@@ -1176,6 +1176,17 @@ function delMealDay(targetDk){
 function editRecDay(targetDk){
   _recEditDk=targetDk;
   refreshPanel('rec');
+  // refreshPanel後に確実に対象日の値を上書きセット
+  const _er=getRec(curRes,targetDk);
+  const _ec=_er.rec.content||'';
+  document.getElementById('recContent').value=_ec;
+  document.getElementById('rTime').value=_er.rec.time||'';
+  document.getElementById('recChips').querySelectorAll('.chip').forEach(b=>{
+    b.classList.toggle('on',_ec.includes(b.textContent));
+  });
+  document.querySelectorAll('.chk-btn').forEach(b=>b.classList.remove('on'));
+  if(_er.rec.part){const pb=document.getElementById('part'+_er.rec.part);if(pb)pb.classList.add('on');}
+  _showEditInd('recEditInd',targetDk,'cancelRecEdit');
 }
 function cancelRecEdit(){
   _recEditDk=null;
@@ -1675,13 +1686,13 @@ function openSummary(name){
   }
   const DOW=['日','月','火','水','木','金','土'];
   let html='<thead><tr>';
-  html+=`<th style="padding:10px 10px;background:#f0f0f0;border:1px solid #ccc;text-align:left;font-size:15px;min-width:80px;position:sticky;left:0;z-index:1;"></th>`;
+  html+=`<th style="padding:15px 10px;background:#f0f0f0;border:1px solid #ccc;text-align:left;font-size:15px;min-width:80px;position:sticky;left:0;z-index:1;"></th>`;
   days.forEach(d=>{
     const dow=d.dt.getDay();
     const color=dow===0?'color:#e53935;':dow===6?'color:#1565c0;':'';
     const bg=d.isToday?'background:#fff3e0;':'background:#f0f0f0;';
     const fw=d.isToday?'font-weight:700;':'font-weight:500;';
-    html+=`<th style="padding:10px 6px;border:1px solid #ccc;text-align:center;font-size:15px;white-space:nowrap;${bg}${color}${fw}">`;
+    html+=`<th style="padding:15px 6px;border:1px solid #ccc;text-align:center;font-size:15px;white-space:nowrap;${bg}${color}${fw}">`;
     html+=`${d.dt.getMonth()+1}/${d.dt.getDate()}<br>（${DOW[dow]}）`;
     if(d.isToday) html+=`<br><span style="font-size:11px;color:var(--orange2);font-weight:700;">TODAY</span>`;
     html+='</th>';
@@ -1700,12 +1711,12 @@ function openSummary(name){
   ];
   rowDefs.forEach((row,ri)=>{
     const bg=ri%2===0?'#ffffff':'#f5f5f5';
-    html+=`<tr style="background:${bg}"><td style="padding:10px 10px;border:1px solid #ccc;font-weight:600;font-size:15px;white-space:nowrap;background:${bg};position:sticky;left:0;">${row.label}</td>`;
+    html+=`<tr style="background:${bg}"><td style="padding:15px 10px;border:1px solid #ccc;font-weight:600;font-size:15px;white-space:nowrap;background:${bg};position:sticky;left:0;">${row.label}</td>`;
     days.forEach(d=>{
       const dd=db.records[d.k]&&db.records[d.k][name];
       const r=dd||{vital:[],excretion:[],bath:[],notes:[],rec:{content:'',part:''}};
       const hasNote=row.jump&&r.notes&&r.notes.length;
-      const tdClick=hasNote?` onclick="jumpToNotes('${name}','${d.k}')" style="padding:10px 6px;text-align:center;border:1px solid #ccc;font-size:15px;cursor:pointer;"`:` style="padding:10px 6px;text-align:center;border:1px solid #ccc;font-size:15px;"`;
+      const tdClick=hasNote?` onclick="jumpToNotes('${name}','${d.k}')" style="padding:15px 6px;text-align:center;border:1px solid #ccc;font-size:15px;cursor:pointer;"`:` style="padding:15px 6px;text-align:center;border:1px solid #ccc;font-size:15px;"`;
       html+=`<td${tdClick}>${row.fn(r)}</td>`;
     });
     html+='</tr>';
