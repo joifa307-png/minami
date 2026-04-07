@@ -634,12 +634,12 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
 
 <!-- ==================== 8日間集計オーバーレイ ==================== -->
 <div class="ov" id="ovSummary" onclick="if(event.target===this)closeOv('ovSummary')">
-  <div class="ov-box" style="max-width:720px;width:97%;padding:16px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+  <div class="ov-box" style="width:100vw;max-width:100vw;height:100vh;max-height:100vh;padding:16px;border-radius:0;display:flex;flex-direction:column;overflow:hidden;box-sizing:border-box;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-shrink:0;">
       <div id="sumResName" style="font-size:19px;font-weight:700;"></div>
       <button onclick="closeOv('ovSummary')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text3);line-height:1;">✕</button>
     </div>
-    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <div style="overflow:auto;-webkit-overflow-scrolling:touch;flex:1;">
       <table id="sumTable" style="border-collapse:collapse;width:100%;min-width:580px;"></table>
     </div>
   </div>
@@ -1695,7 +1695,7 @@ function openSummary(name){
     {label:'排便',fn:(r)=>{if(!r.excretion)return '—';const ex=r.excretion.filter(e=>e.stool&&e.stool!=='なし');return ex.length?`<span style="color:#8B4513;font-size:12px;">${ex[ex.length-1].stool}</span>`:'—';}},
     {label:'パット交換',fn:(r)=>{if(!r.excretion)return '—';const ex=r.excretion.filter(e=>e.padChange);return ex.length?'<span style="color:#1a7fd4;font-weight:700;">交換</span>':'—';}},
     {label:'入浴',fn:(r)=>{return r.bath&&r.bath.length?`<span style="font-size:12px;">${r.bath[r.bath.length-1].type}</span>`:'—';}},
-    {label:'申送り',fn:(r)=>{return r.notes&&r.notes.length?'<span style="color:#e53935;font-size:16px;">●</span>':'—';}},
+    {label:'申送り',fn:(r)=>{return r.notes&&r.notes.length?'<span style="color:#e53935;font-size:16px;">●</span>':'—';},jump:true},
     {label:'1日の様子',fn:(r)=>{return r.rec&&r.rec.content?'<span style="color:#0F6E56;font-size:16px;">●</span>':'—';}},
   ];
   rowDefs.forEach((row,ri)=>{
@@ -1704,13 +1704,23 @@ function openSummary(name){
     days.forEach(d=>{
       const dd=db.records[d.k]&&db.records[d.k][name];
       const r=dd||{vital:[],excretion:[],bath:[],notes:[],rec:{content:'',part:''}};
-      html+=`<td style="padding:7px 4px;text-align:center;border:1px solid #ccc;font-size:13px;">${row.fn(r)}</td>`;
+      const hasNote=row.jump&&r.notes&&r.notes.length;
+      const tdClick=hasNote?` onclick="jumpToNotes('${name}','${d.k}')" style="padding:7px 4px;text-align:center;border:1px solid #ccc;font-size:13px;cursor:pointer;"`:` style="padding:7px 4px;text-align:center;border:1px solid #ccc;font-size:13px;"`;
+      html+=`<td${tdClick}>${row.fn(r)}</td>`;
     });
     html+='</tr>';
   });
   html+='</tbody>';
   document.getElementById('sumTable').innerHTML=html;
   document.getElementById('ovSummary').classList.add('show');
+}
+function jumpToNotes(name,dk){
+  closeOv('ovSummary');
+  const p=dk.split('-');
+  curDate=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));
+  curDate.setHours(0,0,0,0);
+  renderDate(); renderMain();
+  openDetail(name,'notes');
 }
 
 // ==================== CALENDAR ====================
