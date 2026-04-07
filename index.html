@@ -81,6 +81,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
 .no-rec{padding:20px;text-align:center;color:var(--text3);font-size:15px;}
 .chip{padding:8px 14px;border-radius:20px;font-size:16px;border:1px solid var(--border2);background:var(--white);color:var(--text2);cursor:pointer;white-space:nowrap;}
 .chip.on{background:var(--orange);color:#fff;border-color:var(--orange);}
+.chip.pc-on{background:var(--blue);color:#fff;border-color:var(--blue);}
 
 /* ===== INPUT SECTION ===== */
 .inp-box{background:linear-gradient(135deg,#FEF6F0 0%,#FDF0E8 100%);border-radius:var(--r);padding:16px;border:1px solid #F5C49A;box-shadow:0 2px 8px rgba(232,119,34,.08);}
@@ -302,7 +303,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
         </div>
         <div class="row3">
           <div class="fg"><label>排尿</label>
-            <select id="exUrine"><option>なし</option><option>少量</option><option>中量</option><option>大量</option></select>
+            <select id="exUrine"><option>なし</option><option>少量</option><option>中量</option><option>多量</option></select>
             <input type="text" id="exUrineText" placeholder="自由入力（任意）" style="margin-top:4px;width:100%;padding:8px;border:1px solid var(--border2);border-radius:var(--r2);font-size:14px;font-family:inherit;">
           </div>
           <div class="fg"><label>パット内排尿</label>
@@ -312,6 +313,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
               <option>5回分</option><option>6回分</option><option>7回分</option><option>8回分</option>
               <option>9回分</option><option>10回分</option>
             </select>
+            <button type="button" class="chip" id="btnPadChange" onclick="this.classList.toggle('pc-on')" style="margin-top:8px;">パット交換</button>
           </div>
           <div class="fg"><label>排便</label>
             <select id="exStool">
@@ -630,7 +632,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
   </div>
 </div>
 
-<script src="./index_files/xlsx.full.min.js.ダウンロード"></script>
+<script src="./xlsx.full.min.js"></script>
 <script>
 // ==================== DATA ====================
 const LOGO_B64 = '';
@@ -772,7 +774,21 @@ function renderMain(){
     const _leWater=le&&le.stool&&le.stool.startsWith('水様便');
     const _lePad=le?le.pad||'なし':'なし';
     const _leStool=le?le.stool||'なし':'なし';
-    const ec=le?`<span class="${_leWater?'cell-warn':'cell-val'}" style="font-size:14px;">${le.time}<br>パット内尿（${_lePad}）<br>便（${_leStool}）</span>`:'<span class="cell-empty">—</span>';
+    const _leUrine=le?le.urine||'なし':'なし';
+    const _lePadChange=le?!!le.padChange:false;
+    let ec;
+    if(!le){ec='<span class="cell-empty">—</span>';}
+    else{
+      let _lines=[];
+      if(_leUrine!=='なし') _lines.push(`尿 ${_leUrine}`);
+      if(_leStool!=='なし') _lines.push(_leWater?`<span style="color:var(--red);font-weight:600;">${_leStool}</span>`:_leStool);
+      if(_lePadChange) _lines.push('<span style="color:#1a7fd4;font-weight:600;">パ交換済</span>');
+      if(_lines.length===0){
+        if(_lePad!=='なし') _lines.push(`パット内尿（${_lePad}）`);
+        else _lines.push('空振り');
+      }
+      ec=`<span class="${_leWater?'cell-warn':'cell-val'}" style="font-size:16px;">${le.time}<br>${_lines.join('<br>')}</span>`;
+    }
     // last stool (across all dates)
     const _ls=getLastStool(r.name);
     let lsc;
@@ -891,6 +907,7 @@ function refreshPanel(tab){
     document.getElementById('exUrine').value='なし';
     document.getElementById('exUrineText').value='';
     document.getElementById('exPad').value='なし';
+    document.getElementById('btnPadChange').classList.remove('pc-on');
     document.getElementById('exStool').value='なし';
     document.getElementById('exStoolText').value='';
     buildStaffSelect('exWriter','');
@@ -1049,8 +1066,9 @@ function saveEx(){
   const stoolText=document.getElementById('exStoolText').value.trim();
   const stool=stoolText||document.getElementById('exStool').value;
   const staff=document.getElementById('exWriter').value;
+  const padChange=document.getElementById('btnPadChange').classList.contains('pc-on');
   if(!staff){ alert('記入者を選択してください'); return; }
-  getRec(curRes).excretion.push({time,urine,pad,stool,staff});
+  getRec(curRes).excretion.push({time,urine,pad,stool,staff,padChange});
   saveDB(); goBack();
 }
 function delEx(i){ if(!confirm('削除しますか？'))return; getRec(curRes).excretion.splice(i,1); saveDB(); refreshPanel('excretion'); }
@@ -1238,7 +1256,7 @@ function _editExCore(rec,i){
   const e=rec.excretion[i];
   const newTime=prompt('時刻を入力',e.time);
   if(newTime===null) return;
-  const urineOpts=['なし','少量','中量','大量'];
+  const urineOpts=['なし','少量','中量','多量'];
   const padOpts=['なし','1回分','2回分','3回分','4回分','5回分','6回分','7回分','8回分','9回分','10回分'];
   const stoolOpts=['なし','普通便 少量','普通便 中量','普通便 多量','硬便 少量','硬便 中量','軟便 少量','軟便 中量','軟便 多量','水様便 少量','水様便 中量','水様便 多量'];
   const staffOpts=loadStaffList();
@@ -1251,7 +1269,7 @@ function _editExCore(rec,i){
   const curStaff=e.staff||e.writer||'';
   const newStaff=prompt('記入者 ('+staffOpts.join('/')+' または空白)',curStaff);
   if(newStaff===null) return;
-  rec.excretion[i]={time:newTime||e.time,urine:newUrine||e.urine,pad:padOpts.includes(newPad)?newPad:(e.pad||'なし'),stool:newStool||e.stool,staff:staffOpts.includes(newStaff)?newStaff:curStaff};
+  rec.excretion[i]={time:newTime||e.time,urine:newUrine||e.urine,pad:padOpts.includes(newPad)?newPad:(e.pad||'なし'),stool:newStool||e.stool,staff:staffOpts.includes(newStaff)?newStaff:curStaff,padChange:e.padChange||false};
   saveDB(); refreshPanel('excretion');
 }
 
