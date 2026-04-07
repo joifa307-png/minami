@@ -620,8 +620,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
         </div>
       </div>
       <div style="padding:16px 0;">
-        <div style="font-size:15px;font-weight:600;color:var(--text2);margin-bottom:6px;">📤 設定のエクスポート / インポート</div>
-        <div style="font-size:13px;color:var(--text3);margin-bottom:10px;">施設名・職員一覧・定型文をファイルに保存し、他の端末で読み込めます</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text2);margin-bottom:6px;">📤 全データバックアップ / 復元</div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:10px;">設定（施設名・職員・定型文）＋全記録データをまとめてバックアップ。HTML更新後はインポートで復元できます</div>
         <div style="display:flex;gap:8px;">
           <button class="ov-btn" style="flex:1;background:var(--blue);color:#fff;" onclick="exportSettings()">📥 エクスポート</button>
           <button class="ov-btn" style="flex:1;background:#5a9e6f;color:#fff;" onclick="document.getElementById('importSettingsFile').click()">📤 インポート</button>
@@ -780,14 +780,12 @@ function renderMain(){
     if(!le){ec='<span class="cell-empty">—</span>';}
     else{
       let _lines=[];
-      if(_leUrine!=='なし') _lines.push(`尿 ${_leUrine}`);
-      if(_leStool!=='なし') _lines.push(_leWater?`<span style="color:var(--red);font-weight:600;">${_leStool}</span>`:_leStool);
+      if(_leUrine!=='なし') _lines.push(`<span style="color:#2d8a4e;font-weight:600;">尿 ${_leUrine}</span>`);
+      if(_lePad!=='なし') _lines.push(`パット内 ${_lePad}`);
       if(_lePadChange) _lines.push('<span style="color:#1a7fd4;font-weight:600;">パ交換済</span>');
-      if(_lines.length===0){
-        if(_lePad!=='なし') _lines.push(`パット内尿（${_lePad}）`);
-        else _lines.push('空振り');
-      }
-      ec=`<span class="${_leWater?'cell-warn':'cell-val'}" style="font-size:16px;">${le.time}<br>${_lines.join('<br>')}</span>`;
+      if(_leStool!=='なし') _lines.push(_leWater?`<span style="color:var(--red);font-weight:600;">${_leStool}</span>`:`<span style="color:#8B4513;">${_leStool}</span>`);
+      if(_lines.length===0) _lines.push('空振り');
+      ec=`<span class="cell-val" style="font-size:16px;">${le.time}<br>${_lines.join('<br>')}</span>`;
     }
     // last stool (across all dates)
     const _ls=getLastStool(r.name);
@@ -1254,22 +1252,23 @@ function editExByDate(dateKey,i){ _editExCore(getRec(curRes,dateKey),i); }
 function editEx(i){ _editExCore(getRec(curRes),i); }
 function _editExCore(rec,i){
   const e=rec.excretion[i];
-  const newTime=prompt('時刻を入力',e.time);
+  if(!e){ alert('記録が見つかりません'); return; }
+  const newTime=prompt('時刻を入力',e.time||'');
   if(newTime===null) return;
   const urineOpts=['なし','少量','中量','多量'];
   const padOpts=['なし','1回分','2回分','3回分','4回分','5回分','6回分','7回分','8回分','9回分','10回分'];
   const stoolOpts=['なし','普通便 少量','普通便 中量','普通便 多量','硬便 少量','硬便 中量','軟便 少量','軟便 中量','軟便 多量','水様便 少量','水様便 中量','水様便 多量'];
   const staffOpts=loadStaffList();
-  const newUrine=prompt('排尿 ('+urineOpts.join('/')+')',e.urine);
+  const newUrine=prompt('排尿 ('+urineOpts.join('/')+')',e.urine!=null?e.urine:'なし');
   if(newUrine===null) return;
-  const newPad=prompt('パット内排尿 ('+padOpts.join('/')+')',e.pad||'なし');
+  const newPad=prompt('パット内排尿 ('+padOpts.join('/')+')',e.pad!=null?e.pad:'なし');
   if(newPad===null) return;
-  const newStool=prompt('排便 ('+stoolOpts.join('/')+')',e.stool);
+  const newStool=prompt('排便 ('+stoolOpts.join('/')+')',e.stool!=null?e.stool:'なし');
   if(newStool===null) return;
   const curStaff=e.staff||e.writer||'';
   const newStaff=prompt('記入者 ('+staffOpts.join('/')+' または空白)',curStaff);
   if(newStaff===null) return;
-  rec.excretion[i]={time:newTime||e.time,urine:newUrine||e.urine,pad:padOpts.includes(newPad)?newPad:(e.pad||'なし'),stool:newStool||e.stool,staff:staffOpts.includes(newStaff)?newStaff:curStaff,padChange:e.padChange||false};
+  rec.excretion[i]={time:newTime||e.time,urine:newUrine||(e.urine||'なし'),pad:padOpts.includes(newPad)?newPad:(e.pad||'なし'),stool:newStool||(e.stool||'なし'),staff:staffOpts.includes(newStaff)?newStaff:curStaff,padChange:e.padChange||false};
   saveDB(); refreshPanel('excretion');
 }
 
@@ -1413,16 +1412,21 @@ function delCarePhrase(i){
   renderSettingCareList();
 }
 function exportSettings(){
+  const now=new Date();
+  const pad2=n=>String(n).padStart(2,'0');
+  const fname='kaigo_backup_'+now.getFullYear()+pad2(now.getMonth()+1)+pad2(now.getDate())+'.json';
   const data={
     facilityName:loadFacilityName(),
     staffList:loadStaffList(),
-    carePhrases:loadCarePhrases()
+    carePhrases:loadCarePhrases(),
+    dayPhrases:loadDayPhrases?loadDayPhrases():undefined,
+    db:db
   };
   const json=JSON.stringify(data,null,2);
   const blob=new Blob([json],{type:'application/json'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  a.href=url; a.download='kaigo_settings.json'; a.click();
+  a.href=url; a.download=fname; a.click();
   URL.revokeObjectURL(url);
 }
 function importSettings(input){
@@ -1431,11 +1435,21 @@ function importSettings(input){
   reader.onload=function(e){
     try{
       const data=JSON.parse(e.target.result);
-      if(data.facilityName!=null){ saveFacilityName(data.facilityName); document.getElementById('settingFacility').value=data.facilityName; }
+      if(data.facilityName!=null){ saveFacilityName(data.facilityName); const el=document.getElementById('settingFacility'); if(el)el.value=data.facilityName; }
       if(Array.isArray(data.staffList)){ saveStaffList(data.staffList); renderSettingStaffList(); }
       if(Array.isArray(data.carePhrases)){ saveCarePhrases(data.carePhrases); renderSettingCareList(); }
-      alert('設定を読み込みました');
-    }catch(err){ alert('ファイルの読み込みに失敗しました'); }
+      if(Array.isArray(data.dayPhrases)){ localStorage.setItem('dayPhrases',JSON.stringify(data.dayPhrases)); }
+      if(data.db&&data.db.residents&&data.db.records){
+        if(confirm('記録データも復元しますか？\n（現在のデータに上書きされます）')){
+          db=data.db; saveDB(); renderMain();
+          alert('設定と記録データを復元しました');
+        } else {
+          alert('設定を読み込みました（記録データは変更なし）');
+        }
+      } else {
+        alert('設定を読み込みました');
+      }
+    }catch(err){ alert('ファイルの読み込みに失敗しました: '+err.message); }
     input.value='';
   };
   reader.readAsText(file);
