@@ -632,6 +632,19 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
   </div>
 </div>
 
+<!-- ==================== 8日間集計オーバーレイ ==================== -->
+<div class="ov" id="ovSummary" onclick="if(event.target===this)closeOv('ovSummary')">
+  <div class="ov-box" style="max-width:720px;width:97%;padding:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div id="sumResName" style="font-size:19px;font-weight:700;"></div>
+      <button onclick="closeOv('ovSummary')" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--text3);line-height:1;">✕</button>
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <table id="sumTable" style="border-collapse:collapse;width:100%;min-width:580px;"></table>
+    </div>
+  </div>
+</div>
+
 <script src="./xlsx.full.min.js"></script>
 <script>
 // ==================== DATA ====================
@@ -812,7 +825,7 @@ function renderMain(){
       <td>
         <div class="name-wrap">
           <div>
-            <div class="name-txt" onclick="openDetail('${r.name}')">${r.name}</div>
+            <div class="name-txt" onclick="openSummary('${r.name}')">${r.name}</div>
             <div class="name-sub">${r.care}</div>
           </div>
           <button class="del-btn" onclick="removeRes('${r.name}')">✕</button>
@@ -956,15 +969,17 @@ function refreshPanel(tab){
     chips.innerHTML = REC_ITEMS.map(item=>
       `<button class="chip" onclick="toggleChip(this,'${item}')">${item}</button>`
     ).join('');
-    // 既存の内容からチップをONに
-    const cur = rec.rec.content||'';
+    // 編集モード中は編集対象日のデータを使用、通常は今日のデータ
+    const _formRec = _recEditDk ? getRec(curRes, _recEditDk) : rec;
+    const cur = _formRec.rec.content||'';
     document.getElementById('recContent').value = cur;
-    document.getElementById('rTime').value=rec.rec.time||nowTime();
+    document.getElementById('rTime').value = _formRec.rec.time || (_recEditDk?'':nowTime());
     chips.querySelectorAll('.chip').forEach(b=>{
-      if(cur.includes(b.textContent)) b.classList.add('on');
+      b.classList.toggle('on', cur.includes(b.textContent));
     });
     document.querySelectorAll('.chk-btn').forEach(b=>b.classList.remove('on'));
-    if(rec.rec.part){ const pb=document.getElementById('part'+rec.rec.part); if(pb) pb.classList.add('on'); }
+    if(_formRec.rec.part){ const pb=document.getElementById('part'+_formRec.rec.part); if(pb) pb.classList.add('on'); }
+    if(_recEditDk) _showEditInd('recEditInd',_recEditDk,'cancelRecEdit');
   }
   else if(tab==='day'){
     const _dr=getRec(curRes);
@@ -1160,14 +1175,7 @@ function delMealDay(targetDk){
 }
 function editRecDay(targetDk){
   _recEditDk=targetDk;
-  const rec=getRec(curRes,targetDk);
-  const cur=rec.rec.content||'';
-  document.getElementById('recContent').value=cur;
-  document.getElementById('rTime').value=rec.rec.time||'';
-  document.querySelectorAll('#recChips .chip').forEach(b=>b.classList.toggle('on',cur.includes(b.textContent)));
-  document.querySelectorAll('.chk-btn').forEach(b=>b.classList.remove('on'));
-  if(rec.rec.part){ const pb=document.getElementById('part'+rec.rec.part); if(pb) pb.classList.add('on'); }
-  _showEditInd('recEditInd',targetDk,'cancelRecEdit');
+  refreshPanel('rec');
 }
 function cancelRecEdit(){
   _recEditDk=null;
@@ -1654,6 +1662,56 @@ function doAdd(){
 
 // ==================== OVERLAY ====================
 function closeOv(id){ document.getElementById(id).classList.remove('show'); }
+
+// ==================== 8日間集計ビュー ====================
+function openSummary(name){
+  document.getElementById('sumResName').textContent=name;
+  const days=[];
+  for(let d=7;d>=0;d--){
+    const dt=new Date(curDate);
+    dt.setDate(dt.getDate()-d);
+    const k=dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
+    days.push({dt,k,isToday:d===0});
+  }
+  const DOW=['日','月','火','水','木','金','土'];
+  let html='<thead><tr>';
+  html+=`<th style="padding:7px 8px;background:#f0f0f0;border:1px solid #ccc;text-align:left;font-size:13px;min-width:68px;position:sticky;left:0;z-index:1;"></th>`;
+  days.forEach(d=>{
+    const dow=d.dt.getDay();
+    const color=dow===0?'color:#e53935':dow===6?'color:#1565c0':'color:inherit';
+    const bg=d.isToday?'background:#fff3e0;':'background:#f0f0f0;';
+    const fw=d.isToday?'font-weight:700;':'font-weight:500;';
+    html+=`<th style="padding:6px 4px;border:1px solid #ccc;text-align:center;font-size:12px;white-space:nowrap;${bg}">`;
+    html+=`<span style="${color}${fw}">${d.dt.getMonth()+1}/${d.dt.getDate()}<br>（${DOW[dow]}）</span>`;
+    if(d.isToday) html+=`<br><span style="font-size:10px;color:var(--orange2);font-weight:700;">TODAY</span>`;
+    html+='</th>';
+  });
+  html+='</tr></thead><tbody>';
+  const rowDefs=[
+    {label:'体温',fn:(r)=>{const lv=r.vital&&r.vital.length?r.vital[r.vital.length-1]:null;if(!lv)return '—';const w=parseFloat(lv.temp)>=37.0;return `<span style="${w?'color:#e53935;font-weight:600;':''}">${lv.temp}℃</span>`;}},
+    {label:'血圧',fn:(r)=>{const lv=r.vital&&r.vital.length?r.vital[r.vital.length-1]:null;if(!lv)return '—';const w=parseInt(lv.sbp)>=160;return `<span style="${w?'color:#e53935;font-weight:600;':''}">${lv.sbp}/${lv.dbp}</span>`;}},
+    {label:'脈拍',fn:(r)=>{const lv=r.vital&&r.vital.length?r.vital[r.vital.length-1]:null;return lv?String(lv.pulse):'—';}},
+    {label:'SpO2',fn:(r)=>{const lv=r.vital&&r.vital.length?r.vital[r.vital.length-1]:null;return lv&&lv.spo2?lv.spo2+'%':'—';}},
+    {label:'排便',fn:(r)=>{if(!r.excretion)return '—';const ex=r.excretion.filter(e=>e.stool&&e.stool!=='なし');return ex.length?`<span style="color:#8B4513;font-size:12px;">${ex[ex.length-1].stool}</span>`:'—';}},
+    {label:'パット交換',fn:(r)=>{if(!r.excretion)return '—';const ex=r.excretion.filter(e=>e.padChange);return ex.length?'<span style="color:#1a7fd4;font-weight:700;">交換</span>':'—';}},
+    {label:'入浴',fn:(r)=>{return r.bath&&r.bath.length?`<span style="font-size:12px;">${r.bath[r.bath.length-1].type}</span>`:'—';}},
+    {label:'申送り',fn:(r)=>{return r.notes&&r.notes.length?'<span style="color:#e53935;font-size:16px;">●</span>':'—';}},
+    {label:'1日の様子',fn:(r)=>{return r.rec&&r.rec.content?'<span style="color:#0F6E56;font-size:16px;">●</span>':'—';}},
+  ];
+  rowDefs.forEach((row,ri)=>{
+    const bg=ri%2===0?'#ffffff':'#f5f5f5';
+    html+=`<tr style="background:${bg}"><td style="padding:7px 8px;border:1px solid #ccc;font-weight:600;font-size:13px;white-space:nowrap;background:${bg};position:sticky;left:0;">${row.label}</td>`;
+    days.forEach(d=>{
+      const dd=db.records[d.k]&&db.records[d.k][name];
+      const r=dd||{vital:[],excretion:[],bath:[],notes:[],rec:{content:'',part:''}};
+      html+=`<td style="padding:7px 4px;text-align:center;border:1px solid #ccc;font-size:13px;">${row.fn(r)}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  document.getElementById('sumTable').innerHTML=html;
+  document.getElementById('ovSummary').classList.add('show');
+}
 
 // ==================== CALENDAR ====================
 function openCal(){ calY=curDate.getFullYear(); calM=curDate.getMonth(); renderCal(); document.getElementById('ovCal').classList.add('show'); }
