@@ -260,9 +260,13 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
 <div class="screen" id="detailScreen">
   <div class="detail-hdr">
     <button class="back-btn" onclick="goBack()">◀ メイン</button>
-    <div>
+    <div style="flex:1;">
       <div class="detail-name" id="detName"></div>
-      <div class="detail-date" id="detDate"></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
+        <button class="hdr-btn nav" style="padding:4px 12px;font-size:16px;" onclick="moveDayDet(-1)">◀</button>
+        <div class="detail-date" id="detDate" style="cursor:pointer;flex:1;text-align:center;" onclick="openCal()"></div>
+        <button class="hdr-btn nav" style="padding:4px 12px;font-size:16px;" onclick="moveDayDet(1)">▶</button>
+      </div>
     </div>
     <button class="hdr-btn no-print" onclick="openCareSummary()" style="font-size:13px;padding:6px 10px;">📋 サマリー</button>
   </div>
@@ -641,10 +645,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
       <div class="fg"><label>対応者 <span style="color:var(--red);">*</span></label><select id="bulkMedStaff" style="font-size:16px;padding:10px;"></select></div>
     </div>
     <div class="fg" style="margin-bottom:4px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <label style="margin:0;">服薬区分</label>
-        <button class="ov-btn" style="padding:6px 14px;font-size:13px;" onclick="bulkMedAllTimings()">全選択</button>
-      </div>
+      <label>服薬区分</label>
       <div id="bulkMedTimings" style="display:flex;flex-wrap:wrap;gap:8px;">
         <button class="chip" data-timing="morning" onclick="this.classList.toggle('on')">🌅 朝食後</button>
         <button class="chip" data-timing="lunch"   onclick="this.classList.toggle('on')">☀️ 昼食後</button>
@@ -997,6 +998,12 @@ function moveDay(d){
   curDate.setDate(curDate.getDate()+d);
   renderDate(); renderMain();
 }
+function moveDayDet(d){
+  curDate.setDate(curDate.getDate()+d);
+  renderDate();
+  document.getElementById('detDate').textContent=wareki()+' ('+dayStr()+')';
+  refreshPanel(curTab);
+}
 
 // ==================== DETAIL SCREEN ====================
 const TABS=[
@@ -1185,18 +1192,18 @@ function refreshPanel(tab){
     buildStaffSelect('noteWriter','');
   }
   else if(tab==='care'){
-    const careItems=rec.care||[];
+    const careItems=get48hRecords(curRes,'care');
     document.getElementById('listCare').innerHTML=careItems.length?
-      [...careItems].reverse().map((c,i)=>{
+      careItems.map(c=>{
         const staffHtml=c.staff?`<span style="font-size:13px;color:var(--text3);margin-left:8px;">📝${c.staff}</span>`:'';
         return `<div class="rec-item">
-          <span class="rec-time">${c.time}</span>
+          <span class="rec-time">${recDayLabel(c._dk)}${c.time}</span>
           <div class="rec-body">${c.text}${staffHtml}</div>
-          <button class="rec-edit" onclick="editCare(${careItems.length-1-i})">✎</button>
-          <button class="rec-del" onclick="delCare(${careItems.length-1-i})">✕</button>
+          <button class="rec-edit" onclick="editCareByDate('${c._dk}',${c._i})">✎</button>
+          <button class="rec-del" onclick="delCareByDate('${c._dk}',${c._i})">✕</button>
         </div>`;
       }).join(''):
-      '<div class="no-rec">記録なし</div>';
+      '<div class="no-rec">記録なし（48時間）</div>';
     document.getElementById('careTime').value=nowTime();
     buildStaffSelect('careStaff','');
     // 定型文チップ
@@ -1888,6 +1895,20 @@ function editCare(i){
     staff:staffOpts.includes(newStaff)?newStaff:(c.staff||''),
     text:newText.trim()
   };
+  saveDB(); refreshPanel('care');
+}
+function delCareByDate(dkStr,i){ if(!confirm('削除しますか？'))return; getRec(curRes,dkStr).care.splice(i,1); saveDB(); refreshPanel('care'); }
+function editCareByDate(dkStr,i){
+  const rec=getRec(curRes,dkStr);
+  const c=rec.care[i];
+  const newTime=prompt('時刻を入力',c.time);
+  if(newTime===null) return;
+  const staffOpts=loadStaffList();
+  const newStaff=prompt('記入者 ('+staffOpts.join('/')+' または空白)',c.staff||'');
+  if(newStaff===null) return;
+  const newText=prompt('内容を編集',c.text);
+  if(newText===null||!newText.trim()){ if(newText!==null) alert('内容を入力してください'); return; }
+  rec.care[i]={time:newTime||c.time,staff:staffOpts.includes(newStaff)?newStaff:(c.staff||''),text:newText.trim()};
   saveDB(); refreshPanel('care');
 }
 
