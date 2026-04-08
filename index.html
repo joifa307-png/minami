@@ -262,10 +262,10 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
     <button class="back-btn" onclick="goBack()">◀ メイン</button>
     <div style="flex:1;">
       <div class="detail-name" id="detName"></div>
-      <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-        <button class="hdr-btn nav" style="padding:4px 12px;font-size:16px;" onclick="moveDayDet(-1)">◀</button>
-        <div class="detail-date" id="detDate" style="cursor:pointer;flex:1;text-align:center;" onclick="openCal()"></div>
-        <button class="hdr-btn nav" style="padding:4px 12px;font-size:16px;" onclick="moveDayDet(1)">▶</button>
+      <div class="hdr-center" style="margin-top:4px;">
+        <button class="hdr-btn nav" onclick="moveDayDet(-1)">◀</button>
+        <div class="hdr-date" id="detDate" onclick="openCal()"></div>
+        <button class="hdr-btn nav" onclick="moveDayDet(1)">▶</button>
       </div>
     </div>
     <button class="hdr-btn no-print" onclick="openCareSummary()" style="font-size:13px;padding:6px 10px;">📋 サマリー</button>
@@ -410,6 +410,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
 
     <!-- MED -->
     <div class="panel" id="pMed">
+      <div class="rec-list" id="listMed"></div>
       <div class="inp-box" style="padding-bottom:8px;">
         <h4 style="margin:0 0 14px;">💊 服薬入力</h4>
         <!-- 朝食後 -->
@@ -1143,6 +1144,19 @@ function refreshPanel(tab){
     if(_recEditDk) _showEditInd('recEditInd',_recEditDk,'cancelRecEdit');
   }
   else if(tab==='med'){
+    // 履歴表示（48h）
+    const _tLabel={morning:'🌅 朝食後',lunch:'☀️ 昼食後',dinner:'🌆 夕食後',bedtime:'🌙 就寝前'};
+    const _medHist=get48hMedRecords(curRes);
+    document.getElementById('listMed').innerHTML=_medHist.length?_medHist.map(h=>{
+      const staffHtml=h.staff?`<span style="font-size:13px;color:var(--text3);margin-left:8px;">📝${h.staff}</span>`:'';
+      const itemsHtml=`<span style="color:var(--blue);font-weight:600;">${h.items.join('・')}</span>`;
+      return `<div class="rec-item">
+        <span class="rec-time">${recDayLabel(h._dk)}${h.time} <span style="font-size:12px;color:var(--text3);">${_tLabel[h._timing]}</span></span>
+        <div class="rec-body">${itemsHtml}${staffHtml}</div>
+        <button class="rec-del" onclick="delMedRec('${h._dk}','${h._timing}')">✕</button>
+      </div>`;
+    }).join(''):'<div class="no-rec">記録なし（48時間）</div>';
+    // 入力フォーム初期化
     const _mr=getRec(curRes);
     const _mmed=_mr.med||{morning:{time:'',staff:'',items:[]},lunch:{time:'',staff:'',items:[]},dinner:{time:'',staff:'',items:[]},bedtime:{time:'',staff:'',items:[]}};
     ['morning','lunch','dinner','bedtime'].forEach(t=>{
@@ -1438,6 +1452,30 @@ function toggleMedChip(el,item,section){
     if(n) n.classList.remove('on');
   }
 }
+function get48hMedRecords(name){
+  const now=Date.now(),limit=72*3600000,all=[];
+  const ORDER=['morning','lunch','dinner','bedtime'];
+  for(let d=0;d<=2;d++){
+    const dt=new Date(curDate); dt.setDate(dt.getDate()-d);
+    const k=dt.getFullYear()+'-'+pad(dt.getMonth()+1)+'-'+pad(dt.getDate());
+    const dayData=db.records[k]&&db.records[k][name];
+    if(!dayData||!dayData.med) continue;
+    ORDER.forEach(t=>{
+      const m=dayData.med[t];
+      if(!m||!m.items||!m.items.length) return;
+      const ts=new Date(k+'T'+(m.time||'00:00')+':00').getTime();
+      if(now-ts<=limit) all.push({...m,_dk:k,_timing:t,_ts:ts});
+    });
+  }
+  return all.sort((a,b)=>b._ts-a._ts);
+}
+function delMedRec(dkStr,timing){
+  if(!confirm('削除しますか？')) return;
+  const r=getRec(curRes,dkStr);
+  if(r.med&&r.med[timing]) r.med[timing]={time:'',staff:'',items:[]};
+  saveDB(); refreshPanel('med');
+}
+
 function saveMed(timing){
   const tidMap={morning:'medMorningTime',lunch:'medLunchTime',dinner:'medDinnerTime',bedtime:'medBedtimeTime'};
   const sidMap={morning:'medMorningStaff',lunch:'medLunchStaff',dinner:'medDinnerStaff',bedtime:'medBedtimeStaff'};
