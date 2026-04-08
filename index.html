@@ -243,7 +243,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
           <th>入浴</th>
           <th>食事</th>
           <th>レク</th>
-          <th>服薬</th>
+          <th onclick="openBulkMed()" style="cursor:pointer;">服薬＋</th>
         </tr>
       </thead>
       <tbody id="mainTbody"><tr><td colspan="11" style="padding:32px;text-align:center;color:var(--text3);">この日の予定利用者はいません</td></tr></tbody>
@@ -632,6 +632,40 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
   </div>
 </div>
 
+<!-- ==================== BULK MED OVERLAY ==================== -->
+<div class="ov" id="ovBulkMed">
+  <div class="ov-box" style="max-width:480px;width:92vw;">
+    <div class="ov-title">💊 服薬一括入力</div>
+    <div class="row2" style="margin-bottom:12px;">
+      <div class="fg"><label>時刻</label><input type="time" id="bulkMedTime" style="font-size:17px;padding:10px;"></div>
+      <div class="fg"><label>対応者 <span style="color:var(--red);">*</span></label><select id="bulkMedStaff" style="font-size:16px;padding:10px;"></select></div>
+    </div>
+    <div class="fg" style="margin-bottom:4px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label style="margin:0;">服薬区分</label>
+        <button class="ov-btn" style="padding:6px 14px;font-size:13px;" onclick="bulkMedAllTimings()">全選択</button>
+      </div>
+      <div id="bulkMedTimings" style="display:flex;flex-wrap:wrap;gap:8px;">
+        <button class="chip" data-timing="morning" onclick="this.classList.toggle('on')">🌅 朝食後</button>
+        <button class="chip" data-timing="lunch"   onclick="this.classList.toggle('on')">☀️ 昼食後</button>
+        <button class="chip" data-timing="dinner"  onclick="this.classList.toggle('on')">🌆 夕食後</button>
+        <button class="chip" data-timing="bedtime" onclick="this.classList.toggle('on')">🌙 就寝前</button>
+      </div>
+    </div>
+    <div class="fg" style="margin-top:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <label style="margin:0;">利用者</label>
+        <button class="ov-btn" style="padding:6px 14px;font-size:13px;" onclick="bulkMedAllRes()">全選択</button>
+      </div>
+      <div id="bulkMedResidents" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+    <div class="ov-foot" style="margin-top:16px;">
+      <button class="ov-btn" onclick="closeOv('ovBulkMed')">キャンセル</button>
+      <button class="ov-btn orange" onclick="saveBulkMed()">保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- ==================== DAY PHRASE EDIT OVERLAY ==================== -->
 <div class="ov" id="ovDayPhrase">
   <div style="background:var(--white);border-radius:16px;width:90vw;max-width:480px;height:80vh;display:flex;flex-direction:column;overflow:hidden;">
@@ -843,7 +877,9 @@ function getRec(name, dateKey){
     day:'',
     med:{morning:{time:'',staff:'',items:[]},lunch:{time:'',staff:'',items:[]},dinner:{time:'',staff:'',items:[]},bedtime:{time:'',staff:'',items:[]}}
   };
-  return db.records[k][name];
+  const _r=db.records[k][name];
+  if(!_r.med) _r.med={morning:{time:'',staff:'',items:[]},lunch:{time:'',staff:'',items:[]},dinner:{time:'',staff:'',items:[]},bedtime:{time:'',staff:'',items:[]}};
+  return _r;
 }
 function convTemp(el){
   const d=el.value.replace(/[^0-9]/g,'');
@@ -917,19 +953,18 @@ function renderMain(){
     const rc=rec.rec.content?'<span class="cell-ok">✔</span>':'<span class="cell-empty">—</span>';
     // medication
     const _med=rec.med||{};
-    const _mMo=_med.morning&&_med.morning.items&&_med.morning.items.length>0;
-    const _mLu=_med.lunch&&_med.lunch.items&&_med.lunch.items.length>0;
-    const _mDi=_med.dinner&&_med.dinner.items&&_med.dinner.items.length>0;
-    const _mBe=_med.bedtime&&_med.bedtime.items&&_med.bedtime.items.length>0;
+    const _mReal=t=>_med[t]&&_med[t].items&&_med[t].items.some(i=>i!=='服薬なし');
+    const _mAny=t=>_med[t]&&_med[t].items&&_med[t].items.length>0;
     const _isToday=dk()===dk(new Date());
     const _nowH=new Date().getHours()+new Date().getMinutes()/60;
-    function _mSym(done,threshold){return done?'<span style="color:var(--blue);font-weight:700;">✔</span>':(_isToday&&_nowH>=threshold?'<span style="color:var(--orange2);font-weight:700;">？</span>':'<span style="color:var(--text3);">-</span>');}
-    let mdc;
-    if(!_mMo&&!_mLu&&!_mDi&&!_mBe&&!(_isToday&&_nowH>=12)){
-      mdc='<span class="cell-empty">—</span>';
-    } else {
-      mdc=`<span class="cell-val" style="font-size:13px;line-height:2;">朝${_mSym(_mMo,0)} 昼${_mSym(_mLu,12)}<br>夕${_mSym(_mDi,18)} 寝${_mSym(_mBe,21)}</span>`;
-    }
+    const _timings=[{t:'morning',th:8.5},{t:'lunch',th:12},{t:'dinner',th:18},{t:'bedtime',th:21}];
+    const _mParts=[];
+    _timings.forEach(({t,th})=>{
+      if(_mReal(t)) _mParts.push('<span style="color:var(--blue);font-weight:700;">✔</span>');
+      else if(_mAny(t)){/* 服薬なし記録済 → ？非表示 */}
+      else if(_isToday&&_nowH>=th) _mParts.push('<span style="color:var(--orange2);font-weight:700;">？</span>');
+    });
+    const mdc=_mParts.length?`<span class="cell-val" style="font-size:18px;letter-spacing:1px;">${_mParts.join('')}</span>`:'<span class="cell-empty">—</span>';
     // notes 48h
     const now=Date.now();
     const h48=rec.notes.some(n=>(now-new Date(n.ts).getTime())<48*3600000);
@@ -1412,6 +1447,42 @@ function saveMed(timing){
 function goToMedSection(timing){
   curTab='med'; renderTabs(); showPanel('med');
   setTimeout(()=>{const el=document.getElementById('medSec-'+timing);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);
+}
+
+// ==================== 服薬一括入力 ====================
+function openBulkMed(){
+  document.getElementById('bulkMedTime').value=nowTime();
+  buildStaffSelect('bulkMedStaff','');
+  document.querySelectorAll('#bulkMedTimings .chip').forEach(c=>c.classList.remove('on'));
+  const resDiv=document.getElementById('bulkMedResidents');
+  resDiv.innerHTML=db.residents.map(r=>
+    `<button class="chip" data-name="${r.name}" onclick="this.classList.toggle('on')">${r.name}</button>`
+  ).join('');
+  document.getElementById('ovBulkMed').classList.add('show');
+}
+function bulkMedAllTimings(){
+  document.querySelectorAll('#bulkMedTimings .chip').forEach(c=>c.classList.add('on'));
+}
+function bulkMedAllRes(){
+  document.querySelectorAll('#bulkMedResidents .chip').forEach(c=>c.classList.add('on'));
+}
+function saveBulkMed(){
+  const staff=document.getElementById('bulkMedStaff').value;
+  if(!staff){ alert('対応者を選択してください'); return; }
+  const timings=[...document.querySelectorAll('#bulkMedTimings .chip.on')].map(c=>c.dataset.timing);
+  if(!timings.length){ alert('服薬区分を選択してください'); return; }
+  const names=[...document.querySelectorAll('#bulkMedResidents .chip.on')].map(c=>c.dataset.name);
+  if(!names.length){ alert('利用者を選択してください'); return; }
+  const time=document.getElementById('bulkMedTime').value||nowTime();
+  names.forEach(name=>{
+    const r=getRec(name);
+    timings.forEach(t=>{
+      r.med[t]={time,staff,items:['処方薬']};
+    });
+  });
+  saveDB();
+  renderMain();
+  closeOv('ovBulkMed');
 }
 
 function saveNote(){
@@ -2406,7 +2477,24 @@ function syncFrom(){
   fetch(JURL+'/latest', {headers:{'X-Master-Key':JKEY}})
     .then(r=>r.json()).then(res=>{
       if(res.record && res.record.timestamp > syncTs){
-        db = JSON.parse(res.record.data);
+        const cloudDb = JSON.parse(res.record.data);
+        // med フィールドをローカル優先でマージ（クラウドに無い場合はローカルを保持）
+        if(db.records && cloudDb.records){
+          Object.entries(db.records).forEach(([dateK, dayData])=>{
+            if(!cloudDb.records[dateK]) return;
+            Object.entries(dayData).forEach(([name, localRec])=>{
+              const cr=cloudDb.records[dateK][name];
+              if(!cr||!localRec.med) return;
+              if(!cr.med) cr.med=localRec.med;
+              else ['morning','lunch','dinner','bedtime'].forEach(t=>{
+                if(localRec.med[t]&&localRec.med[t].items&&localRec.med[t].items.length&&
+                   (!cr.med[t]||!cr.med[t].items||!cr.med[t].items.length))
+                  cr.med[t]=localRec.med[t];
+              });
+            });
+          });
+        }
+        db = cloudDb;
         localStorage.setItem('minami3', JSON.stringify(db));
         syncTs = res.record.timestamp;
         renderMain();
