@@ -243,6 +243,7 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
           <th>入浴</th>
           <th>食事</th>
           <th>レク</th>
+          <th>服薬</th>
         </tr>
       </thead>
       <tbody id="mainTbody"><tr><td colspan="11" style="padding:32px;text-align:center;color:var(--text3);">この日の予定利用者はいません</td></tr></tbody>
@@ -314,6 +315,8 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
               <option>9回分</option><option>10回分</option>
             </select>
             <button type="button" class="chip" id="btnPadChange" onclick="this.classList.toggle('pc-on')" style="margin-top:8px;">パット交換</button>
+            <button type="button" class="chip" id="btnRehaChange" onclick="this.classList.toggle('pc-on')" style="margin-top:4px;">リハパン交換</button>
+            <button type="button" class="chip" id="btnDiaperChange" onclick="this.classList.toggle('pc-on')" style="margin-top:4px;">オムツ交換</button>
           </div>
           <div class="fg"><label>排便</label>
             <select id="exStool">
@@ -349,24 +352,28 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
     <div class="panel" id="pMeal">
       <div class="rec-list" id="listMeal"></div>
       <div id="mealEditInd" style="display:none;background:#fff3cd;border:1px solid #f0ad4e;border-radius:8px;padding:6px 12px;font-size:13px;margin-bottom:8px;display:none;justify-content:space-between;align-items:center;"></div>
-      <div class="inp-box">
+      <div class="inp-box" style="padding-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
           <h4 style="margin:0">食事入力</h4>
           <button class="all-btn" onclick="applyAllMeal()">全員に反映</button>
         </div>
         <!-- 朝食 -->
-        <div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border);">
-          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:8px;">🌅 朝食</div>
+        <div style="background:#FFF8F0;border:1px solid #FFD580;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:15px;font-weight:700;color:#E67700;margin-bottom:10px;">🌅 朝食</div>
           <div class="row3">
             <div class="fg"><label>時刻</label><input type="time" id="bTime" value="07:30"></div>
             <div class="fg"><label>主食 %</label><select id="bMain"></select></div>
             <div class="fg"><label>副食 %</label><select id="bSide"></select></div>
           </div>
           <div class="fg" style="max-width:160px"><label>水分 ml</label><input type="tel" id="bWater" placeholder="200"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <button class="save-btn" style="flex:1;min-width:120px;" onclick="saveMealBreakfast()">朝食保存</button>
+            <button class="ov-btn" style="flex:1;min-width:120px;" onclick="goToMedSection('morning')">💊 服薬登録へ</button>
+          </div>
         </div>
         <!-- 昼食 -->
-        <div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border);">
-          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:8px;">☀️ 昼食</div>
+        <div style="background:#F0F8FF;border:1px solid #90CAF9;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:15px;font-weight:700;color:#1565C0;margin-bottom:10px;">☀️ 昼食</div>
           <div class="fg"><label>メニュー</label><input type="text" id="mMenu" placeholder="例：鮭の塩焼き定食"></div>
           <div class="row3">
             <div class="fg"><label>時刻</label><input type="time" id="mTime" value="11:50"></div>
@@ -374,18 +381,105 @@ html,body{height:100%;overflow:hidden;font-family:-apple-system,'Hiragino Sans',
             <div class="fg"><label>副食 %</label><select id="mSide"></select></div>
           </div>
           <div class="fg" style="max-width:160px"><label>水分 ml</label><input type="tel" id="mWater" placeholder="200"></div>
+          <div class="fg"><label>おやつ</label><input type="text" id="mSnack" placeholder="例：どら焼き"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <button class="save-btn" style="flex:1;min-width:120px;" onclick="saveMealLunch()">昼食保存</button>
+            <button class="ov-btn" style="flex:1;min-width:120px;" onclick="goToMedSection('lunch')">💊 服薬登録へ</button>
+          </div>
         </div>
         <!-- 夕食 -->
-        <div style="margin-bottom:8px;">
-          <div style="font-size:14px;font-weight:600;color:var(--text2);margin-bottom:8px;">🌙 夕食</div>
+        <div style="background:#F3F0FF;border:1px solid #CE93D8;border-radius:10px;padding:14px;margin-bottom:8px;">
+          <div style="font-size:15px;font-weight:700;color:#6A1B9A;margin-bottom:10px;">🌙 夕食</div>
           <div class="row3">
             <div class="fg"><label>時刻</label><input type="time" id="dTime" value="17:30"></div>
             <div class="fg"><label>主食 %</label><select id="dMain"></select></div>
             <div class="fg"><label>副食 %</label><select id="dSide"></select></div>
           </div>
           <div class="fg" style="max-width:160px"><label>水分 ml</label><input type="tel" id="dWater" placeholder="200"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+            <button class="save-btn" style="flex:1;min-width:120px;" onclick="saveMealDinner()">夕食保存</button>
+            <button class="ov-btn" style="flex:1;min-width:120px;" onclick="goToMedSection('dinner')">💊 服薬登録へ</button>
+          </div>
         </div>
-        <button class="save-btn" onclick="saveMeal()">保存</button>
+      </div>
+    </div>
+
+    <!-- MED -->
+    <div class="panel" id="pMed">
+      <div class="inp-box" style="padding-bottom:8px;">
+        <h4 style="margin:0 0 14px;">💊 服薬入力</h4>
+        <!-- 朝食後 -->
+        <div id="medSec-morning" style="background:#FFF8F0;border:1px solid #FFD580;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:15px;font-weight:700;color:#E67700;margin-bottom:10px;">🌅 朝食後</div>
+          <div class="row2">
+            <div class="fg"><label>時刻</label><input type="time" id="medMorningTime"></div>
+            <div class="fg"><label>対応者 <span style="color:var(--red);">*</span></label><select id="medMorningStaff"></select></div>
+          </div>
+          <div class="fg"><label>服薬内容</label>
+            <div id="medChips-morning" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="chip" data-item="処方薬" onclick="toggleMedChip(this,'処方薬','morning')">処方薬</button>
+              <button type="button" class="chip" data-item="漢方薬" onclick="toggleMedChip(this,'漢方薬','morning')">漢方薬</button>
+              <button type="button" class="chip" data-item="解熱鎮痛薬" onclick="toggleMedChip(this,'解熱鎮痛薬','morning')">解熱鎮痛薬</button>
+              <button type="button" class="chip" data-item="目薬" onclick="toggleMedChip(this,'目薬','morning')">目薬</button>
+              <button type="button" class="chip" data-item="服薬なし" onclick="toggleMedChip(this,'服薬なし','morning')">服薬なし</button>
+            </div>
+          </div>
+          <button class="save-btn" style="margin-top:10px;" onclick="saveMed('morning')">朝食後服薬保存</button>
+        </div>
+        <!-- 昼食後 -->
+        <div id="medSec-lunch" style="background:#F0F8FF;border:1px solid #90CAF9;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:15px;font-weight:700;color:#1565C0;margin-bottom:10px;">☀️ 昼食後</div>
+          <div class="row2">
+            <div class="fg"><label>時刻</label><input type="time" id="medLunchTime"></div>
+            <div class="fg"><label>対応者 <span style="color:var(--red);">*</span></label><select id="medLunchStaff"></select></div>
+          </div>
+          <div class="fg"><label>服薬内容</label>
+            <div id="medChips-lunch" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="chip" data-item="処方薬" onclick="toggleMedChip(this,'処方薬','lunch')">処方薬</button>
+              <button type="button" class="chip" data-item="漢方薬" onclick="toggleMedChip(this,'漢方薬','lunch')">漢方薬</button>
+              <button type="button" class="chip" data-item="解熱鎮痛薬" onclick="toggleMedChip(this,'解熱鎮痛薬','lunch')">解熱鎮痛薬</button>
+              <button type="button" class="chip" data-item="目薬" onclick="toggleMedChip(this,'目薬','lunch')">目薬</button>
+              <button type="button" class="chip" data-item="服薬なし" onclick="toggleMedChip(this,'服薬なし','lunch')">服薬なし</button>
+            </div>
+          </div>
+          <button class="save-btn" style="margin-top:10px;" onclick="saveMed('lunch')">昼食後服薬保存</button>
+        </div>
+        <!-- 夕食後 -->
+        <div id="medSec-dinner" style="background:#F3F0FF;border:1px solid #CE93D8;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:15px;font-weight:700;color:#6A1B9A;margin-bottom:10px;">🌙 夕食後</div>
+          <div class="row2">
+            <div class="fg"><label>時刻</label><input type="time" id="medDinnerTime"></div>
+            <div class="fg"><label>対応者 <span style="color:var(--red);">*</span></label><select id="medDinnerStaff"></select></div>
+          </div>
+          <div class="fg"><label>服薬内容</label>
+            <div id="medChips-dinner" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="chip" data-item="処方薬" onclick="toggleMedChip(this,'処方薬','dinner')">処方薬</button>
+              <button type="button" class="chip" data-item="漢方薬" onclick="toggleMedChip(this,'漢方薬','dinner')">漢方薬</button>
+              <button type="button" class="chip" data-item="解熱鎮痛薬" onclick="toggleMedChip(this,'解熱鎮痛薬','dinner')">解熱鎮痛薬</button>
+              <button type="button" class="chip" data-item="目薬" onclick="toggleMedChip(this,'目薬','dinner')">目薬</button>
+              <button type="button" class="chip" data-item="服薬なし" onclick="toggleMedChip(this,'服薬なし','dinner')">服薬なし</button>
+            </div>
+          </div>
+          <button class="save-btn" style="margin-top:10px;" onclick="saveMed('dinner')">夕食後服薬保存</button>
+        </div>
+        <!-- 就寝前 -->
+        <div id="medSec-bedtime" style="background:#F0FFF4;border:1px solid #A5D6A7;border-radius:10px;padding:14px;margin-bottom:8px;">
+          <div style="font-size:15px;font-weight:700;color:#2E7D32;margin-bottom:10px;">🌛 就寝前</div>
+          <div class="row2">
+            <div class="fg"><label>時刻</label><input type="time" id="medBedtimeTime"></div>
+            <div class="fg"><label>対応者 <span style="color:var(--red);">*</span></label><select id="medBedtimeStaff"></select></div>
+          </div>
+          <div class="fg"><label>服薬内容</label>
+            <div id="medChips-bedtime" style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button type="button" class="chip" data-item="処方薬" onclick="toggleMedChip(this,'処方薬','bedtime')">処方薬</button>
+              <button type="button" class="chip" data-item="漢方薬" onclick="toggleMedChip(this,'漢方薬','bedtime')">漢方薬</button>
+              <button type="button" class="chip" data-item="解熱鎮痛薬" onclick="toggleMedChip(this,'解熱鎮痛薬','bedtime')">解熱鎮痛薬</button>
+              <button type="button" class="chip" data-item="目薬" onclick="toggleMedChip(this,'目薬','bedtime')">目薬</button>
+              <button type="button" class="chip" data-item="服薬なし" onclick="toggleMedChip(this,'服薬なし','bedtime')">服薬なし</button>
+            </div>
+          </div>
+          <button class="save-btn" style="margin-top:10px;" onclick="saveMed('bedtime')">就寝前服薬保存</button>
+        </div>
       </div>
     </div>
 
@@ -742,11 +836,12 @@ function getRec(name, dateKey){
   if(!db.records[k]) db.records[k]={};
   if(!db.records[k][name]) db.records[k][name]={
     vital:[],excretion:[],bath:[],
-    meal:{bTime:'07:30',bMain:100,bSide:100,bWater:'',time:'11:50',menu:'',main:100,side:100,water:'',dTime:'17:30',dMain:100,dSide:100,dWater:''},
+    meal:{bTime:'07:30',bMain:100,bSide:100,bWater:'',time:'11:50',menu:'',snack:'',main:100,side:100,water:'',dTime:'17:30',dMain:100,dSide:100,dWater:''},
     rec:{content:'',part:''},
     notes:[],
     care:[],
-    day:''
+    day:'',
+    med:{morning:{time:'',staff:'',items:[]},lunch:{time:'',staff:'',items:[]},dinner:{time:'',staff:'',items:[]},bedtime:{time:'',staff:'',items:[]}}
   };
   return db.records[k][name];
 }
@@ -771,7 +866,7 @@ function renderMain(){
   const tbody=document.getElementById('mainTbody');
   const res=todayRes();
   if(res.length===0){
-    tbody.innerHTML='<tr><td colspan="11" style="padding:32px;text-align:center;color:var(--text3);">この日の予定利用者はいません</td></tr>';
+    tbody.innerHTML='<tr><td colspan="12" style="padding:32px;text-align:center;color:var(--text3);">この日の予定利用者はいません</td></tr>';
     return;
   }
   tbody.innerHTML=res.map(r=>{
@@ -789,6 +884,8 @@ function renderMain(){
     const _leStool=le?le.stool||'なし':'なし';
     const _leUrine=le?le.urine||'なし':'なし';
     const _lePadChange=le?!!le.padChange:false;
+    const _leRehaChange=le?!!le.rehaChange:false;
+    const _leDiaperChange=le?!!le.diaperChange:false;
     let ec;
     if(!le){ec='<span class="cell-empty">—</span>';}
     else{
@@ -796,6 +893,8 @@ function renderMain(){
       if(_leUrine!=='なし') _lines.push(`<span style="color:#2d8a4e;font-weight:600;">尿 ${_leUrine}</span>`);
       if(_lePad!=='なし') _lines.push(`パット内 ${_lePad}`);
       if(_lePadChange) _lines.push('<span style="color:#1a7fd4;font-weight:600;">パ交換済</span>');
+      if(_leRehaChange) _lines.push('<span style="color:#1a7fd4;font-weight:600;">リハパン交換済</span>');
+      if(_leDiaperChange) _lines.push('<span style="color:#1a7fd4;font-weight:600;">オムツ交換済</span>');
       if(_leStool!=='なし') _lines.push(_leWater?`<span style="color:var(--red);font-weight:600;">${_leStool}</span>`:`<span style="color:#8B4513;">${_leStool}</span>`);
       if(_lines.length===0) _lines.push('空振り');
       ec=`<span class="cell-val" style="font-size:16px;">${le.time}<br>${_lines.join('<br>')}</span>`;
@@ -816,6 +915,21 @@ function renderMain(){
     const mc=rec.meal.menu?'<span class="cell-ok">✔</span>':'<span class="cell-empty">—</span>';
     // rec
     const rc=rec.rec.content?'<span class="cell-ok">✔</span>':'<span class="cell-empty">—</span>';
+    // medication
+    const _med=rec.med||{};
+    const _mMo=_med.morning&&_med.morning.items&&_med.morning.items.length>0;
+    const _mLu=_med.lunch&&_med.lunch.items&&_med.lunch.items.length>0;
+    const _mDi=_med.dinner&&_med.dinner.items&&_med.dinner.items.length>0;
+    const _mBe=_med.bedtime&&_med.bedtime.items&&_med.bedtime.items.length>0;
+    const _isToday=dk()===dk(new Date());
+    const _nowH=new Date().getHours()+new Date().getMinutes()/60;
+    function _mSym(done,threshold){return done?'<span style="color:var(--blue);font-weight:700;">✔</span>':(_isToday&&_nowH>=threshold?'<span style="color:var(--orange2);font-weight:700;">？</span>':'<span style="color:var(--text3);">-</span>');}
+    let mdc;
+    if(!_mMo&&!_mLu&&!_mDi&&!_mBe&&!(_isToday&&_nowH>=12)){
+      mdc='<span class="cell-empty">—</span>';
+    } else {
+      mdc=`<span class="cell-val" style="font-size:13px;line-height:2;">朝${_mSym(_mMo,0)} 昼${_mSym(_mLu,12)}<br>夕${_mSym(_mDi,18)} 寝${_mSym(_mBe,21)}</span>`;
+    }
     // notes 48h
     const now=Date.now();
     const h48=rec.notes.some(n=>(now-new Date(n.ts).getTime())<48*3600000);
@@ -840,6 +954,7 @@ function renderMain(){
       <td onclick="openDetail('${r.name}','bath')">${bac}</td>
       <td onclick="openDetail('${r.name}','meal')">${mc}</td>
       <td onclick="openDetail('${r.name}','rec')">${rc}</td>
+      <td onclick="openDetail('${r.name}','med')">${mdc}</td>
     </tr>`;
   }).join('');
 }
@@ -854,6 +969,7 @@ const TABS=[
   {id:'excretion',label:'🚽 排泄'},
   {id:'bath',label:'🛁 入浴'},
   {id:'meal',label:'🍱 食事'},
+  {id:'med',label:'💊 服薬'},
   {id:'rec',label:'🎯 レク'},
   {id:'notes',label:'📝 申し送り'},
   {id:'day',label:'☀️ 1日の様子'},
@@ -919,6 +1035,8 @@ function refreshPanel(tab){
     document.getElementById('exUrineText').value='';
     document.getElementById('exPad').value='なし';
     document.getElementById('btnPadChange').classList.remove('pc-on');
+    document.getElementById('btnRehaChange').classList.remove('pc-on');
+    document.getElementById('btnDiaperChange').classList.remove('pc-on');
     document.getElementById('exStool').value='なし';
     document.getElementById('exStoolText').value='';
     buildStaffSelect('exWriter','');
@@ -947,6 +1065,7 @@ function refreshPanel(tab){
     document.getElementById('bWater').value=rec.meal.bWater||'';
     document.getElementById('mTime').value=rec.meal.time||'11:50';
     document.getElementById('mMenu').value=rec.meal.menu||'';
+    document.getElementById('mSnack').value=rec.meal.snack||'';
     document.getElementById('mWater').value=rec.meal.water||'';
     buildSel('mMain',rec.meal.main!=null?rec.meal.main:100);
     buildSel('mSide',rec.meal.side!=null?rec.meal.side:100);
@@ -980,6 +1099,20 @@ function refreshPanel(tab){
     document.querySelectorAll('.chk-btn').forEach(b=>b.classList.remove('on'));
     if(_formRec.rec.part){ const pb=document.getElementById('part'+_formRec.rec.part); if(pb) pb.classList.add('on'); }
     if(_recEditDk) _showEditInd('recEditInd',_recEditDk,'cancelRecEdit');
+  }
+  else if(tab==='med'){
+    const _mr=getRec(curRes);
+    const _mmed=_mr.med||{morning:{time:'',staff:'',items:[]},lunch:{time:'',staff:'',items:[]},dinner:{time:'',staff:'',items:[]},bedtime:{time:'',staff:'',items:[]}};
+    ['morning','lunch','dinner','bedtime'].forEach(t=>{
+      const m=_mmed[t]||{time:'',staff:'',items:[]};
+      const tidMap={morning:'medMorningTime',lunch:'medLunchTime',dinner:'medDinnerTime',bedtime:'medBedtimeTime'};
+      const sidMap={morning:'medMorningStaff',lunch:'medLunchStaff',dinner:'medDinnerStaff',bedtime:'medBedtimeStaff'};
+      const tel=document.getElementById(tidMap[t]); if(tel) tel.value=m.time||'';
+      buildStaffSelect(sidMap[t],m.staff||'');
+      document.querySelectorAll('#medChips-'+t+' .chip').forEach(c=>{
+        c.classList.toggle('on',!!(m.items&&m.items.includes(c.dataset.item)));
+      });
+    });
   }
   else if(tab==='day'){
     const _dr=getRec(curRes);
@@ -1080,8 +1213,9 @@ function saveEx(){
   const stool=stoolText||document.getElementById('exStool').value;
   const staff=document.getElementById('exWriter').value;
   const padChange=document.getElementById('btnPadChange').classList.contains('pc-on');
-  if(!staff){ alert('記入者を選択してください'); return; }
-  getRec(curRes).excretion.push({time,urine,pad,stool,staff,padChange});
+  const rehaChange=document.getElementById('btnRehaChange').classList.contains('pc-on');
+  const diaperChange=document.getElementById('btnDiaperChange').classList.contains('pc-on');
+  getRec(curRes).excretion.push({time,urine,pad,stool,staff,padChange,rehaChange,diaperChange});
   saveDB(); goBack();
 }
 function delEx(i){ if(!confirm('削除しますか？'))return; getRec(curRes).excretion.splice(i,1); saveDB(); refreshPanel('excretion'); }
@@ -1096,22 +1230,36 @@ function saveBath(){
 function delBath(i){ if(!confirm('削除しますか？'))return; getRec(curRes).bath.splice(i,1); saveDB(); refreshPanel('bath'); }
 
 function saveMeal(){
+  saveMealBreakfast(); saveMealLunch(); saveMealDinner();
+}
+function saveMealBreakfast(){
   const targetDk=_mealEditDk||dk();
   const r=getRec(curRes,targetDk);
   r.meal.bTime=document.getElementById('bTime').value||'07:30';
   r.meal.bMain=document.getElementById('bMain').value;
   r.meal.bSide=document.getElementById('bSide').value;
   r.meal.bWater=document.getElementById('bWater').value;
+  saveDB(); refreshPanel('meal');
+}
+function saveMealLunch(){
+  const targetDk=_mealEditDk||dk();
+  const r=getRec(curRes,targetDk);
   r.meal.time=document.getElementById('mTime').value||'11:50';
   r.meal.menu=document.getElementById('mMenu').value;
+  r.meal.snack=document.getElementById('mSnack').value;
   r.meal.main=document.getElementById('mMain').value;
   r.meal.side=document.getElementById('mSide').value;
   r.meal.water=document.getElementById('mWater').value;
+  saveDB(); refreshPanel('meal');
+}
+function saveMealDinner(){
+  const targetDk=_mealEditDk||dk();
+  const r=getRec(curRes,targetDk);
   r.meal.dTime=document.getElementById('dTime').value||'17:30';
   r.meal.dMain=document.getElementById('dMain').value;
   r.meal.dSide=document.getElementById('dSide').value;
   r.meal.dWater=document.getElementById('dWater').value;
-  saveDB(); goBack();
+  saveDB(); refreshPanel('meal');
 }
 function applyAllMeal(){
   const targetDk=_mealEditDk||dk();
@@ -1121,6 +1269,7 @@ function applyAllMeal(){
   const bWater=document.getElementById('bWater').value;
   const time=document.getElementById('mTime').value||'11:50';
   const menu=document.getElementById('mMenu').value;
+  const snack=document.getElementById('mSnack').value;
   const main=document.getElementById('mMain').value;
   const side=document.getElementById('mSide').value;
   const water=document.getElementById('mWater').value;
@@ -1128,7 +1277,7 @@ function applyAllMeal(){
   const dMain=document.getElementById('dMain').value;
   const dSide=document.getElementById('dSide').value;
   const dWater=document.getElementById('dWater').value;
-  db.residents.forEach(r=>{ const rec=getRec(r.name,targetDk); Object.assign(rec.meal,{bTime,bMain,bSide,bWater,time,menu,main,side,water,dTime,dMain,dSide,dWater}); });
+  db.residents.forEach(r=>{ const rec=getRec(r.name,targetDk); Object.assign(rec.meal,{bTime,bMain,bSide,bWater,time,menu,snack,main,side,water,dTime,dMain,dSide,dWater}); });
   saveDB(); alert('全員に反映しました');
 }
 
@@ -1149,6 +1298,7 @@ function editMealDay(targetDk){
   document.getElementById('bWater').value=rec.meal.bWater||'';
   document.getElementById('mTime').value=rec.meal.time||'11:50';
   document.getElementById('mMenu').value=rec.meal.menu||'';
+  document.getElementById('mSnack').value=rec.meal.snack||'';
   document.getElementById('mWater').value=rec.meal.water||'';
   buildSel('mMain',rec.meal.main!=null?rec.meal.main:100);
   buildSel('mSide',rec.meal.side!=null?rec.meal.side:100);
@@ -1233,6 +1383,35 @@ function applyAllRec(){
   const time=document.getElementById('rTime').value||nowTime();
   db.residents.forEach(r=>{ const rec=getRec(r.name,targetDk); rec.rec.content=content; rec.rec.part=part; rec.rec.time=time; });
   saveDB(); alert('全員に反映しました');
+}
+
+// ==================== MEDICATION ====================
+function toggleMedChip(el,item,section){
+  if(item==='服薬なし'){
+    document.querySelectorAll('#medChips-'+section+' .chip').forEach(c=>c.classList.remove('on'));
+    el.classList.add('on');
+  } else {
+    el.classList.toggle('on');
+    const n=document.querySelector('#medChips-'+section+' [data-item="服薬なし"]');
+    if(n) n.classList.remove('on');
+  }
+}
+function saveMed(timing){
+  const tidMap={morning:'medMorningTime',lunch:'medLunchTime',dinner:'medDinnerTime',bedtime:'medBedtimeTime'};
+  const sidMap={morning:'medMorningStaff',lunch:'medLunchStaff',dinner:'medDinnerStaff',bedtime:'medBedtimeStaff'};
+  const staff=document.getElementById(sidMap[timing]).value;
+  if(!staff){alert('対応者を選択してください');return;}
+  const items=[...document.querySelectorAll('#medChips-'+timing+' .chip.on')].map(b=>b.dataset.item);
+  if(!items.length){alert('服薬内容を選択してください');return;}
+  const time=document.getElementById(tidMap[timing]).value||nowTime();
+  const r=getRec(curRes);
+  if(!r.med) r.med={morning:{time:'',staff:'',items:[]},lunch:{time:'',staff:'',items:[]},dinner:{time:'',staff:'',items:[]},bedtime:{time:'',staff:'',items:[]}};
+  r.med[timing]={time,staff,items};
+  saveDB(); refreshPanel('med');
+}
+function goToMedSection(timing){
+  curTab='med'; renderTabs(); showPanel('med');
+  setTimeout(()=>{const el=document.getElementById('medSec-'+timing);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);
 }
 
 function saveNote(){
@@ -1699,15 +1878,18 @@ function openSummary(name){
   });
   html+='</tr></thead><tbody>';
   const rowDefs=[
+    {label:'申送り',fn:(r)=>{return r.notes&&r.notes.length?'<span style="color:#e53935;font-size:18px;">●</span>':'—';},jump:true},
     {label:'体温',fn:(r)=>{const lv=r.vital&&r.vital.length?r.vital[r.vital.length-1]:null;if(!lv)return '—';const w=parseFloat(lv.temp)>=37.0;return `<span style="${w?'color:#e53935;font-weight:600;':''}">${lv.temp}℃</span>`;}},
     {label:'血圧',fn:(r)=>{const lv=r.vital&&r.vital.length?r.vital[r.vital.length-1]:null;if(!lv)return '—';const w=parseInt(lv.sbp)>=160;return `<span style="${w?'color:#e53935;font-weight:600;':''}">${lv.sbp}/${lv.dbp}</span>`;}},
     {label:'脈拍',fn:(r)=>{const lv=r.vital&&r.vital.length?r.vital[r.vital.length-1]:null;return lv?String(lv.pulse):'—';}},
     {label:'SpO2',fn:(r)=>{const lv=r.vital&&r.vital.length?r.vital[r.vital.length-1]:null;return lv&&lv.spo2?lv.spo2+'%':'—';}},
     {label:'排便',fn:(r)=>{if(!r.excretion)return '—';const ex=r.excretion.filter(e=>e.stool&&e.stool!=='なし');return ex.length?`<span style="color:#8B4513;">${ex[ex.length-1].stool}</span>`:'—';}},
-    {label:'パット交換',fn:(r)=>{if(!r.excretion)return '—';const ex=r.excretion.filter(e=>e.padChange);return ex.length?'<span style="color:#1a7fd4;font-weight:700;">交換</span>':'—';}},
+    {label:'パット交換',fn:(r)=>{if(!r.excretion)return '—';const ex=r.excretion.filter(e=>e.padChange||e.rehaChange||e.diaperChange);return ex.length?'<span style="color:#1a7fd4;font-weight:700;">交換</span>':'—';}},
     {label:'入浴',fn:(r)=>{return r.bath&&r.bath.length?r.bath[r.bath.length-1].type:'—';}},
-    {label:'申送り',fn:(r)=>{return r.notes&&r.notes.length?'<span style="color:#e53935;font-size:18px;">●</span>':'—';},jump:true},
-    {label:'1日の様子',fn:(r)=>{return r.rec&&r.rec.content?'<span style="color:#0F6E56;font-size:18px;">●</span>':'—';}},
+    {label:'服薬朝',fn:(r)=>{const m=r.med&&r.med.morning;return m&&m.items&&m.items.length?'<span style="color:var(--blue);font-weight:700;">✔</span>':'—';}},
+    {label:'服薬昼',fn:(r)=>{const m=r.med&&r.med.lunch;return m&&m.items&&m.items.length?'<span style="color:var(--blue);font-weight:700;">✔</span>':'—';}},
+    {label:'服薬夕',fn:(r)=>{const m=r.med&&r.med.dinner;return m&&m.items&&m.items.length?'<span style="color:var(--blue);font-weight:700;">✔</span>':'—';}},
+    {label:'服薬就寝',fn:(r)=>{const m=r.med&&r.med.bedtime;return m&&m.items&&m.items.length?'<span style="color:var(--blue);font-weight:700;">✔</span>':'—';}},
   ];
   rowDefs.forEach((row,ri)=>{
     const bg=ri%2===0?'#ffffff':'#f5f5f5';
