@@ -2049,7 +2049,7 @@ function jumpToNotes(name,dk){
 // ==================== CALENDAR ====================
 function openCal(){ calY=curDate.getFullYear(); calM=curDate.getMonth(); renderCal(); document.getElementById('ovCal').classList.add('show'); }
 function calMove(d){ calM+=d; if(calM<0){calM=11;calY--;} if(calM>11){calM=0;calY++;} renderCal(); }
-function goToday(){ curDate=new Date(); curDate.setHours(0,0,0,0); renderDate(); renderMain(); closeOv('ovCal'); }
+function goToday(){ curDate=new Date(); curDate.setHours(0,0,0,0); renderDate(); if(document.getElementById('detailScreen').classList.contains('active')){ document.getElementById('detDate').textContent=wareki()+' ('+dayStr()+')'; refreshPanel(curTab); } else { renderMain(); } closeOv('ovCal'); }
 function renderCal(){
   const mn=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
   document.getElementById('calTitle').textContent=calY+'年 '+mn[calM];
@@ -2072,7 +2072,7 @@ function renderCal(){
   }
   document.getElementById('calGrid').innerHTML=html;
 }
-function pickDay(y,m,d){ curDate=new Date(y,m,d); curDate.setHours(0,0,0,0); renderDate(); renderMain(); closeOv('ovCal'); }
+function pickDay(y,m,d){ curDate=new Date(y,m,d); curDate.setHours(0,0,0,0); renderDate(); if(document.getElementById('detailScreen').classList.contains('active')){ document.getElementById('detDate').textContent=wareki()+' ('+dayStr()+')'; refreshPanel(curTab); } else { renderMain(); } closeOv('ovCal'); }
 
 // ==================== PRINT ====================
 // ==================== 【5】バイタル期間印刷 ====================
