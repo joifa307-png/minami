@@ -2537,19 +2537,30 @@ function syncFrom(){
     .then(r=>r.json()).then(res=>{
       if(res.record && res.record.timestamp > syncTs){
         const cloudDb = JSON.parse(res.record.data);
-        // med フィールドをローカル優先でマージ（クラウドに無い場合はローカルを保持）
+        // ローカルデータをクラウドにマージ（ローカルにしかないデータを保護）
         if(db.records && cloudDb.records){
           Object.entries(db.records).forEach(([dateK, dayData])=>{
-            if(!cloudDb.records[dateK]) return;
+            // ローカルにある日付がクラウドにない → そのままクラウドに追加
+            if(!cloudDb.records[dateK]){ cloudDb.records[dateK]=dayData; return; }
             Object.entries(dayData).forEach(([name, localRec])=>{
+              // ローカルにある利用者データがクラウドにない → そのままクラウドに追加
+              if(!cloudDb.records[dateK][name]){ cloudDb.records[dateK][name]=localRec; return; }
               const cr=cloudDb.records[dateK][name];
-              if(!cr||!localRec.med) return;
-              if(!cr.med) cr.med=localRec.med;
-              else ['morning','lunch','dinner','bedtime'].forEach(t=>{
-                if(localRec.med[t]&&localRec.med[t].items&&localRec.med[t].items.length&&
-                   (!cr.med[t]||!cr.med[t].items||!cr.med[t].items.length))
-                  cr.med[t]=localRec.med[t];
+              // 配列フィールド: ローカルの件数が多い場合はローカルを優先
+              ['vital','excretion','bath','care','notes'].forEach(field=>{
+                if(localRec[field]&&localRec[field].length>0&&
+                   (!cr[field]||cr[field].length<localRec[field].length))
+                  cr[field]=localRec[field];
               });
+              // med: タイミング別にローカル優先（既存ロジック）
+              if(localRec.med){
+                if(!cr.med) cr.med=localRec.med;
+                else ['morning','lunch','dinner','bedtime'].forEach(t=>{
+                  if(localRec.med[t]&&localRec.med[t].items&&localRec.med[t].items.length&&
+                     (!cr.med[t]||!cr.med[t].items||!cr.med[t].items.length))
+                    cr.med[t]=localRec.med[t];
+                });
+              }
             });
           });
         }
